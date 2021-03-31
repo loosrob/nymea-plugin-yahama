@@ -25,13 +25,7 @@
                         }
                     ],
                     "settingsTypes": [
-                        {
-                            "id": "b57d0572-bee7-42f4-a550-36f6490876ba",
-                            "name": "volStep",
-                            "displayName": "Volume step size",
-                            "type": "int",
-                            "defaultValue": 5
-                        }
+
                     ],
                     "stateTypes": [
                         {
@@ -150,21 +144,22 @@
                             "type": "QString",
                             "writable": true,
                             "possibleValues": [
-                                "Standard",
+                                "2ch Stereo",
                                 "7ch Stereo",
-                                "2ch Stereo"
+                                "Standard",
+                                "Straight",
+                                "Surround Decoder",
+                                "Mono Movie",
+                                "Sci-Fi",
+                                "Adventure",
+                                "Drama",
+                                "Spectacle",
+                                "Music Video",
+                                "Roleplaying Game",
+                                "Action Game",
+                                "Sports"
                             ],
                             "defaultValue": "Standard"
-                        },
-                        {
-                            "displayName": "Straight",
-                            "id": "e52cf8c2-72b0-48c5-b0c9-332b694e382d",
-                            "name": "straight",
-                            "displayNameEvent": "Straight changed",
-                            "displayNameAction": "Set Straight",
-                            "type": "bool",
-                            "defaultValue": false,
-                            "writable": true
                         },
                         {
                             "displayName": "Enhancer",
