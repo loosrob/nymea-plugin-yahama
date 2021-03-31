@@ -8,6 +8,8 @@ thingsAndReceivers = {}
 
 pollTimer = None
 
+playPoll = False
+
 def setupThing(info):
     if info.thing.thingClassId == receiverThingClassId:
         logger.log("setupThing called for", info.thing.name)
@@ -119,6 +121,7 @@ def setupReceiver(receiver):
     # </YAMAHA_AV>
 
 def pollReceiver(receiver):
+    global playPoll
     deviceIp = receiver.paramValue(receiverThingUrlParamTypeId)
     logger.log("polling receiver", deviceIp)
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
@@ -222,10 +225,13 @@ def pollReceiver(receiver):
             responseExtract = playerResponse[stringIndex1+15:stringIndex2]
             if responseExtract == "Play":
                 playStatus = "Playing"
+                playPoll = True
             elif responseExtract == "Pause":
                 playStatus = "Paused"
+                playPoll = True
             else:
                 playStatus = "Stopped"
+                playPoll = False
             receiver.setStateValue(receiverPlaybackStatusStateTypeId, playStatus)
             # Get meta info
             stringIndex1 = playerResponse.find("<Artist>")
@@ -261,10 +267,12 @@ def pollService():
         if thing.thingClassId == receiverThingClassId:
             # deviceIp = thing.paramValue(receiverThingUrlParamTypeId)
             pollReceiver(thing)
-    # restart the timer for next poll
-    # to do: set up separate poll for player info, with higher frequency?
+    # restart the timer for next poll (if player is playing, increase poll frequency)
     global pollTimer
-    pollTimer = threading.Timer(20, pollService)
+    if playPoll == True:
+        pollTimer = threading.Timer(20, pollService)
+    else:
+        pollTimer = threading.Timer(60, pollService)
     pollTimer.start()
 
 
