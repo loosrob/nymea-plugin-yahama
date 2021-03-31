@@ -1,0 +1,322 @@
+{
+    "displayName": "Yamaha AV receiver",
+    "name": "Yamaha",
+    "id": "aa07a5cc-ca65-4043-9e61-e7040a6a60ff",
+    "vendors": [
+        {
+            "id": "07460546-0b4a-4c3c-9143-d5de6b09de71",
+            "displayName": "Yamaha Corporation",
+            "name": "yamaha",
+            "thingClasses": [
+                {
+                    "id": "f799a98a-8521-451e-a206-4b60e2dd0985",
+                    "name": "receiver",
+                    "displayName": "Yamaha AV Receiver",
+                    "createMethods": ["user"],
+                    "interfaces": ["mediaplayer", "mediacontroller", "volumecontroller", "mediametadataprovider", "connectable", "power"],
+                    "paramTypes": [
+                        {
+                            "id": "5d4aa05d-f8ea-4f77-a5c6-90e5de132cdb",
+                            "name": "url",
+                            "displayName": "Device Address",
+                            "type" : "QString",
+                            "inputType": "IPv4Address",
+                            "defaultValue": "10.0.1.9"
+                        }
+                    ],
+                    "settingsTypes": [
+                        {
+                            "id": "b57d0572-bee7-42f4-a550-36f6490876ba",
+                            "name": "volStep",
+                            "displayName": "Volume step size",
+                            "type": "int",
+                            "defaultValue": 5
+                        }
+                    ],
+                    "stateTypes": [
+                        {
+                            "id": "ea3ccab0-549a-4174-a6e1-493981cf5fa8",
+                            "name": "connected",
+                            "displayName": "Connected",
+                            "displayNameEvent": "Connected changed",
+                            "defaultValue": false,
+                            "type": "bool",
+                            "cached": false
+                        },
+                        {
+                            "displayName": "Power",
+                            "id": "5b1232a6-4eb5-4e7a-825b-4906de623ea0",
+                            "name": "power",
+                            "displayNameEvent": "Power changed",
+                            "displayNameAction": "Set power",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Mute",
+                            "id": "f36a7bac-313e-4ab2-8816-4d9ce3684414",
+                            "name": "mute",
+                            "displayNameEvent": "Mute changed",
+                            "displayNameAction": "Set mute",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Volume",
+                            "id": "9734a504-7447-4c82-ba90-d47fbe50a696",
+                            "name": "volume",
+                            "displayNameEvent": "Volume changed",
+                            "displayNameAction": "Set volume",
+                            "type": "int",
+                            "defaultValue": -500,
+                            "minValue": -800,
+                            "maxValue": -100,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Pure direct",
+                            "id": "d19ddece-6bf5-4c2d-9bbc-018b02d564df",
+                            "name": "pureDirect",
+                            "displayNameEvent": "Pure direct changed",
+                            "displayNameAction": "Set pure direct",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Bass",
+                            "id": "07b2c6ae-74c6-4cb2-b434-a25ad90fb7f9",
+                            "name": "bass",
+                            "displayNameEvent": "Bass changed",
+                            "displayNameAction": "Set bass",
+                            "type": "int",
+                            "defaultValue": 0,
+                            "minValue": -60,
+                            "maxValue": 60,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Treble",
+                            "id": "c06bce86-c1cb-42f0-9891-161a7f0849f5",
+                            "name": "treble",
+                            "displayNameEvent": "Treble changed",
+                            "displayNameAction": "Set treble",
+                            "type": "int",
+                            "defaultValue": 0,
+                            "minValue": -60,
+                            "maxValue": 60,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Input Source",
+                            "id": "710949d8-ae7c-4a60-9cfa-a9f0eb2ffbe1",
+                            "name": "inputSource",
+                            "displayNameEvent": "Input source changed",
+                            "displayNameAction": "Set input source",
+                            "type": "QString",
+                            "writable": true,
+                            "possibleValues": [
+                                "TUNER",
+                                "NAPSTER",
+                                "SPOTIFY",
+                                "SERVER",
+                                "NET_RADIO",
+                                "USB",
+                                "HDMI1",
+                                "HDMI2",
+                                "HDMI3",
+                                "HDMI4",
+                                "HDMI5",
+                                "AV1",
+                                "AV2",
+                                "AV3",
+                                "AV4",
+                                "AV5",
+                                "AV6",
+                                "V-AUX",
+                                "AUDIO1",
+                                "AUDIO2"
+                            ],
+                            "defaultValue": "HDMI1"
+                        },
+                        {
+                            "displayName": "Surround Program",
+                            "id": "1a9b6260-e71b-4750-bf03-34bca0b34222",
+                            "name": "surroundMode",
+                            "displayNameEvent": "Surround program changed",
+                            "displayNameAction": "Set surround program",
+                            "type": "QString",
+                            "writable": true,
+                            "possibleValues": [
+                                "Standard",
+                                "7ch Stereo",
+                                "2ch Stereo"
+                            ],
+                            "defaultValue": "Standard"
+                        },
+                        {
+                            "displayName": "Straight",
+                            "id": "e52cf8c2-72b0-48c5-b0c9-332b694e382d",
+                            "name": "straight",
+                            "displayNameEvent": "Straight changed",
+                            "displayNameAction": "Set Straight",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Enhancer",
+                            "id": "ca7a4564-9f6d-4f07-8f63-445e44a0eb93",
+                            "name": "enhancer",
+                            "displayNameEvent": "Enhancer changed",
+                            "displayNameAction": "Set enhancer",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "writable": true
+                        },
+                        {
+                            "id": "053c01cd-4696-490b-91ad-480cd90171e0",
+                            "name": "artist",
+                            "displayName": "Artist",
+                            "displayNameEvent": "Artist changed",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "3db27780-b0a0-409e-9986-2c751f0bb9d8",
+                            "name": "collection",
+                            "displayName": "Album",
+                            "displayNameEvent": "Album changed",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "1686f85c-ce71-474b-8ece-e8da97fb809b",
+                            "name": "title",
+                            "displayName": "Title",
+                            "displayNameEvent": "Title changed",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "e321c171-b0c1-486f-a245-b4fd8ddf90e3",
+                            "name": "artwork",
+                            "displayName": "Artwork",
+                            "displayNameEvent": "Artwork changed",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "f936b76f-657d-467a-90c0-cbdf08de2201",
+                            "name": "playerType",
+                            "displayName": "Player type",
+                            "displayNameEvent": "Player type changed",
+                            "possibleValues": [
+                                "audio",
+                                "video"
+                            ],
+                            "type": "QString",
+                            "defaultValue": "audio"
+                        },
+                        {
+                            "id": "f5a12603-5df9-4eae-9096-17775272d22f",
+                            "name": "playbackStatus",
+                            "displayName": "Playback status",
+                            "displayNameEvent": "Playback status changed",
+                            "displayNameAction": "Set playback status",
+                            "type": "QString",
+                            "defaultValue": "Stopped",
+                            "possibleValues": ["Playing", "Paused", "Stopped"],
+                            "cached": false,
+                            "writable": true
+                        },
+                        {
+                            "id": "189600dd-6cdc-4453-a816-f897b8ef06dd",
+                            "name": "shuffle",
+                            "displayName": "Shuffle",
+                            "displayNameEvent": "Shuffle changed",
+                            "displayNameAction": "Set shuffle",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "cached": false,
+                            "writable": true
+                        },
+                        {
+                            "id": "fa5e8258-ce4c-4afa-b8bc-9c3c2be7653b",
+                            "name": "repeat",
+                            "displayName": "Repeat mode",
+                            "displayNameEvent": "Repeat mode changed",
+                            "displayNameAction": "Set repeat mode",
+                            "type": "QString",
+                            "defaultValue": "None",
+                            "possibleValues": ["None", "One", "All"],
+                            "cached": false,
+                            "writable": true
+                        }
+                    ],
+                    "actionTypes": [
+                        {
+                            "id": "dd1a44d1-ecb2-4752-a8d4-f3960dec6808",
+                            "displayName": "Increase volume",
+                            "name": "increaseVolume",
+                            "paramTypes": [
+                                {
+                                    "id": "3bb5ff93-a787-4a30-957e-b96f27da2199",
+                                    "name": "step",
+                                    "displayName": "Step size",
+                                    "type": "uint",
+                                    "minValue": 1,
+                                    "maxValue": 5,
+                                    "defaultValue": 5
+                                }
+                            ]
+                        },
+                        {
+                            "id": "d3752c32-92e3-4396-8e2f-ab5e57c6cfb1",
+                            "displayName": "Decrease volume",
+                            "name": "decreaseVolume",
+                            "paramTypes": [
+                                {
+                                    "id": "736f5e25-31ce-4d17-80ab-b82b18cf6540",
+                                    "name": "step",
+                                    "displayName": "Step size",
+                                    "type": "uint",
+                                    "minValue": 1,
+                                    "maxValue": 5,
+                                    "defaultValue": 5
+                                }
+                            ]
+                        },
+                        {
+                            "id": "9d1812ba-77a6-493a-8fd0-77a6c44d3765",
+                            "name": "skipBack",
+                            "displayName": "Skip back"
+                        },
+                        {
+                            "id": "c5a8d2e0-60d8-4092-ae77-697b13ce5946",
+                            "name": "stop",
+                            "displayName": "Stop"
+                        },
+                        {
+                            "id": "18e999ae-a1ef-476e-a416-05b8b07527ae",
+                            "name": "play",
+                            "displayName": "Play"
+                        },
+                        {
+                            "id": "9f019a46-821a-4069-9772-fc649c39f941",
+                            "name": "pause",
+                            "displayName": "Pause"
+                        },
+                        {
+                            "id": "ffceeb31-8b66-4d03-b664-57a3f9c9ec1a",
+                            "name": "skipNext",
+                            "displayName": "Skip next"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
