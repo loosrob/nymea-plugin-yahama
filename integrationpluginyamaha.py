@@ -286,13 +286,16 @@ def executeAction(info):
     if info.actionTypeId == receiverIncreaseVolumeActionTypeId:
         stepsize = info.paramValue(receiverIncreaseVolumeActionStepParamTypeId)
         volumeDelta = stepsize * 10
-        while abs(volumeDelta) > 5:
+        while abs(volumeDelta) >= 5:
             if volumeDelta >= 50:
                 step = "Up 5 dB"
                 volumeDelta -= 50
             elif volumeDelta >= 10:
                 step = "Up 1 dB"
                 volumeDelta -= 10
+            elif volumeDelta >= 5:
+                step = "Up"
+                volumeDelta -= 5
             else:
                 break
             body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume></Main_Zone></YAMAHA_AV>'
@@ -302,13 +305,16 @@ def executeAction(info):
     elif info.actionTypeId == receiverDecreaseVolumeActionTypeId:
         stepsize = info.paramValue(receiverDecreaseVolumeActionStepParamTypeId)
         volumeDelta = stepsize * -10
-        while abs(volumeDelta) > 5:
+        while abs(volumeDelta) >= 5:
             if volumeDelta <= -50:
                 step = "Down 5 dB"
                 volumeDelta += 50
             elif volumeDelta <= -10:
                 step = "Down 1 dB"
                 volumeDelta += 10
+            elif volumeDelta <= -5:
+                step = "Down"
+                volumeDelta += 5
             else:
                 break
             body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume></Main_Zone></YAMAHA_AV>'
@@ -363,34 +369,10 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverVolumeActionTypeId:
-        body = '<YAMAHA_AV cmd="GET"><Main_Zone><Basic_Status>GetParam</Basic_Status></Main_Zone></YAMAHA_AV>'
-        pr = requests.post(rUrl, headers=headers, data=body)
-        pollResponse = pr.text
-        stringIndex1 = pollResponse.find("<Volume><Lvl><Val>")
-        responseExtract = pollResponse[stringIndex1+18:stringIndex1+30]
-        stringIndex2 = responseExtract.find("</Val>")
-        responseExtract = responseExtract[0:stringIndex2]
-        currentVolume = int(responseExtract)
         newVolume = info.paramValue(receiverVolumeStateTypeId)
-        volumeDelta = newVolume - currentVolume
-        logger.log("Current volume", currentVolume, "Target volume", newVolume)
-        while abs(volumeDelta) > 5:
-            if volumeDelta >= 50:
-                step = "Up 5 dB"
-                volumeDelta -= 50
-            elif volumeDelta >= 10:
-                step = "Up 1 dB"
-                volumeDelta -= 10
-            elif volumeDelta <= -50:
-                step = "Down 5 dB"
-                volumeDelta += 50
-            elif volumeDelta <= -10:
-                step = "Down 1 dB"
-                volumeDelta += 10
-            else:
-                break
-            body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume></Main_Zone></YAMAHA_AV>'
-            pr = requests.post(rUrl, headers=headers, data=body)
+        volumeString = str(newVolume)
+        body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Lvl><Val>' + volumeString + '</Val><Exp>1</Exp><Unit>dB</Unit></Lvl></Volume></Main_Zone></YAMAHA_AV>'
+        pr = requests.post(rUrl, headers=headers, data=body)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverPureDirectActionTypeId:
