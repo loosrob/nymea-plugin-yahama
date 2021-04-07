@@ -246,6 +246,11 @@ def pollReceiver(receiver):
             stringIndex2 = playerResponse.find("</Song>")
             responseExtract = playerResponse[stringIndex1+6:stringIndex2]
             receiver.setStateValue(receiverTitleStateTypeId, responseExtract)
+            stringIndex1 = playerResponse.find("<URL>")
+            stringIndex2 = playerResponse.find("</URL>")
+            responseExtract = playerResponse[stringIndex1+5:stringIndex2]
+            artURL = 'http://' + deviceIp + ':80' + responseExtract
+            receiver.setStateValue(receiverArtworkStateTypeId, artURL)
         else:
             # Playing from external source so no info available 
             receiver.setStateValue(receiverRepeatStateTypeId, "None")
@@ -254,6 +259,7 @@ def pollReceiver(receiver):
             receiver.setStateValue(receiverArtistStateTypeId, "")
             receiver.setStateValue(receiverCollectionStateTypeId, "")
             receiver.setStateValue(receiverTitleStateTypeId, "")
+            receiver.setStateValue(receiverArtworkStateTypeId, "")
     else:
         receiver.setStateValue(receiverConnectedStateTypeId, False)
         
@@ -371,6 +377,7 @@ def executeAction(info):
     elif info.actionTypeId == receiverVolumeActionTypeId:
         newVolume = info.paramValue(receiverVolumeStateTypeId)
         volumeString = str(newVolume)
+        logger.log("Treble set to", newVolume)
         body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Lvl><Val>' + volumeString + '</Val><Exp>1</Exp><Unit>dB</Unit></Lvl></Volume></Main_Zone></YAMAHA_AV>'
         pr = requests.post(rUrl, headers=headers, data=body)
         info.finish(nymea.ThingErrorNoError)
