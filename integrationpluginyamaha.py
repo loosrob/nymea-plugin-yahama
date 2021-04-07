@@ -120,6 +120,7 @@ def setupReceiver(receiver):
     #     </System>
     # </YAMAHA_AV>
 
+
 def pollReceiver(receiver):
     global playPoll
     deviceIp = receiver.paramValue(receiverThingUrlParamTypeId)
