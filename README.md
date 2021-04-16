@@ -6,7 +6,7 @@ This is an experimental version that doesn't use autodiscovery yet, most (but no
 
 ## Supported Things
 
-* Yamaha RX-V675
+* Yamaha RX-V675 (tested)
 * Other non-MusicCast Yamaha RX-V devices should also work, but haven't been tested
 * Newer Yamaha MusicCast devices aren't supported, as they use a different API
 
