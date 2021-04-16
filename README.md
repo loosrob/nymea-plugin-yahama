@@ -2,12 +2,13 @@
 
 This plugin allows to control your Yamaha (non-MusicCast) AV receivers. (To add: Each supported receiver on your local area network should appear automatically in the system.)
 
-This is an experimental version that doesn't use autodiscovery yet, most (but not all) actions for the main zone are implemented; zones are a work in progress.
+This is an experimental version that doesn't use autodiscovery yet, most (but not all) actions are implemented.
 
 ## Supported Things
 
 * Yamaha RX-V675 (tested)
 * Other non-MusicCast Yamaha RX-V devices should also work, but haven't been tested
+* Multiple zones are supported
 * Newer Yamaha MusicCast devices aren't supported, as they use a different API
 
 ## Requirements
