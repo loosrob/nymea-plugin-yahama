@@ -416,16 +416,15 @@ def pollService():
     # restart the timer for next poll (if player is playing, increase poll frequency)
     global pollTimer
     if playPoll == True:
-        pollTimer = threading.Timer(20, pollService)
-        logger.log("Next poll in 20 seconds.")
+        pollTimer = threading.Timer(10, pollService)
     else:
-        pollTimer = threading.Timer(60, pollService)
-        logger.log("Next poll in 60 seconds.")
+        pollTimer = threading.Timer(30, pollService)
     pollTimer.start()
 
 # add distinction between receiver & zone
 def executeAction(info):
-    # To do: add pollService call after some actions? --> pollReceiver(info.thing)
+    pollReceiver(info.thing)
+    # To do: also add pollService call after actions
     
     if info.thing.thingClassId == zoneThingClassId:
         # get parent receiver thing, needed to get deviceIp
@@ -436,20 +435,23 @@ def executeAction(info):
         zoneId = info.thing.paramValue(zoneThingZoneIdParamTypeId)
         bodyStart = '<YAMAHA_AV cmd="PUT"><Zone_' + str(zoneId) + '>'
         bodyEnd = '</Zone_' + str(zoneId) + '></YAMAHA_AV>'
+        source = info.thing.stateValue(zoneInputSourceStateTypeId)
     elif info.thing.thingClassId == receiverThingClassId:
         deviceIp = info.thing.paramValue(receiverThingUrlParamTypeId)
         bodyStart = '<YAMAHA_AV cmd="PUT"><Main_Zone>'
         bodyEnd = '</Main_Zone></YAMAHA_AV>'
+        source = info.thing.stateValue(receiverInputSourceStateTypeId)
 
-    logger.log("executeAction called for thing", info.name, deviceIp, info.actionTypeId, info.params)
+    logger.log("executeAction called for thing", info.thing.name, deviceIp, info.actionTypeId, info.params)
+    logger.log("action related to source:", source)
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
     headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
 
-    # extend below actions with id = receiver OR zone?
-    # in that case: use above bodyStart/End to set request body
-
-    if info.actionTypeId == receiverIncreaseVolumeActionTypeId:
-        stepsize = info.paramValue(receiverIncreaseVolumeActionStepParamTypeId)
+    if info.actionTypeId == receiverIncreaseVolumeActionTypeId or info.actionTypeId == zoneIncreaseVolumeActionTypeId:
+        if info.actionTypeId == receiverIncreaseVolumeActionTypeId:
+            stepsize = info.paramValue(receiverIncreaseVolumeActionStepParamTypeId)
+        else:
+            stepsize = info.paramValue(zoneIncreaseVolumeActionStepParamTypeId)
         volumeDelta = stepsize * 10
         while abs(volumeDelta) >= 5:
             if volumeDelta >= 50:
@@ -463,12 +465,18 @@ def executeAction(info):
                 volumeDelta -= 5
             else:
                 break
-            body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume></Main_Zone></YAMAHA_AV>'
+            body = bodyStart + '<Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume>' + bodyEnd
+            logger.log("Request body:", body)
             pr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverDecreaseVolumeActionTypeId:
-        stepsize = info.paramValue(receiverDecreaseVolumeActionStepParamTypeId)
+    elif info.actionTypeId == receiverDecreaseVolumeActionTypeId or info.actionTypeId == zoneDecreaseVolumeActionTypeId:
+        if info.actionTypeId == receiverDecreaseVolumeActionTypeId:
+            stepsize = info.paramValue(receiverDecreaseVolumeActionStepParamTypeId)
+        else:
+            stepsize = info.paramValue(zoneDecreaseVolumeActionStepParamTypeId)
         volumeDelta = stepsize * -10
         while abs(volumeDelta) >= 5:
             if volumeDelta <= -50:
@@ -482,76 +490,90 @@ def executeAction(info):
                 volumeDelta += 5
             else:
                 break
-            body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume></Main_Zone></YAMAHA_AV>'
+            body = bodyStart + '<Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume>' + bodyEnd
             pr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverSkipBackActionTypeId:
-        body = '<YAMAHA_AV cmd="PUT"><SERVER><Play_Control><Playback>Skip Rev</Playback></Play_Control></SERVER></YAMAHA_AV>'
+    elif info.actionTypeId == receiverSkipBackActionTypeId or info.actionTypeId == zoneSkipBackActionTypeId:
+        body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Skip Rev</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverStopActionTypeId:
-        body = '<YAMAHA_AV cmd="PUT"><SERVER><Play_Control><Playback>Stop</Playback></Play_Control></SERVER></YAMAHA_AV>'
+    elif info.actionTypeId == receiverStopActionTypeId or info.actionTypeId == zoneStopActionTypeId:
+        body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Stop</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverPlayActionTypeId:
-        body = '<YAMAHA_AV cmd="PUT"><SERVER><Play_Control><Playback>Play</Playback></Play_Control></SERVER></YAMAHA_AV>'
+    elif info.actionTypeId == receiverPlayActionTypeId or info.actionTypeId == zonePlayActionTypeId:
+        body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Play</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverPauseActionTypeId:
-        body = '<YAMAHA_AV cmd="PUT"><SERVER><Play_Control><Playback>Pause</Playback></Play_Control></SERVER></YAMAHA_AV>'
+    elif info.actionTypeId == receiverPauseActionTypeId or info.actionTypeId == zonePauseActionTypeId:
+        body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Pause</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverSkipNextActionTypeId:
-        body = '<YAMAHA_AV cmd="PUT"><SERVER><Play_Control><Playback>Skip Fwd</Playback></Play_Control></SERVER></YAMAHA_AV>'
+    elif info.actionTypeId == receiverSkipNextActionTypeId or info.actionTypeId == zoneSkipNextActionTypeId:
+        body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Skip Fwd</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverPowerActionTypeId:
-        power = info.paramValue(receiverPowerActionPowerParamTypeId)
+    elif info.actionTypeId == receiverPowerActionTypeId or info.actionTypeId == zonePowerActionTypeId:
+        if info.actionTypeId == receiverPowerActionTypeId:
+            power = info.paramValue(receiverPowerActionPowerParamTypeId)
+        else:
+            power = info.paramValue(zonePowerActionPowerParamTypeId)
         if power == True:
             powerString = "On"
         else:
             powerString = "Standby"
-        body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Power_Control><Power>' + powerString + '</Power></Power_Control></Main_Zone></YAMAHA_AV>'
+        body = bodyStart + '<Power_Control><Power>' + powerString + '</Power></Power_Control>' + bodyEnd
         headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverMuteActionTypeId:
-        mute = info.paramValue(receiverMuteActionMuteParamTypeId)
+    elif info.actionTypeId == receiverMuteActionTypeId or info.actionTypeId == zoneMuteActionTypeId:
+        if info.actionTypeId == receiverMuteActionTypeId:
+            mute = info.paramValue(receiverMuteActionMuteParamTypeId)
+        else:
+            mute = info.paramValue(zoneMuteActionMuteParamTypeId)
         if mute == True:
             muteString = "On"
         else:
             muteString = "Off"
-        body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Mute>' + muteString + '</Mute></Volume></Main_Zone></YAMAHA_AV>'
+        body = bodyStart + '<Volume><Mute>' + muteString + '</Mute></Volume>' + bodyEnd
         headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverVolumeActionTypeId:
-        # nymea works like this:
-        # * you use the volume slider in the app
-        # * the app sends out the first command 
-        # * you keep moving the slider
-        # * the app doesn't send anything until the plugin confirmed with "info.finish_()"
-        # * once the finish() ends up in the app again, the app will send the next value
-        # so what you ideally should do, everywhere, is something like this in the plugin:
-        # executeAction() comes in
-        # you send the api call to the device/server/whatever
-        # you wait for the device/server to confirm
-        # and then you call info.finish()
-        # this would make it behave very smooth while not overloading the devices
-        
-        newVolume = info.paramValue(receiverVolumeStateTypeId)
+    elif info.actionTypeId == receiverVolumeActionTypeId or info.actionTypeId == zoneVolumeActionTypeId:
+        if info.actionTypeId == receiverVolumeActionTypeId:
+            newVolume = info.paramValue(receiverVolumeStateTypeId)
+        else:
+            newVolume = info.paramValue(zoneVolumeStateTypeId)
         volumeString = str(newVolume)
-        logger.log("Treble set to", newVolume)
-        body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Volume><Lvl><Val>' + volumeString + '</Val><Exp>1</Exp><Unit>dB</Unit></Lvl></Volume></Main_Zone></YAMAHA_AV>'
+        logger.log("Volume set to", newVolume)
+        body = bodyStart + '<Volume><Lvl><Val>' + volumeString + '</Val><Exp>1</Exp><Unit>dB</Unit></Lvl></Volume>' + bodyEnd
         pr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverPureDirectActionTypeId:
@@ -560,8 +582,10 @@ def executeAction(info):
             PureDirectString = "On"
         else:
             PureDirectString = "Off"
-        body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Sound_Video><Pure_Direct><Mode>' + PureDirectString + '</Mode></Pure_Direct></Sound_Video></Main_Zone></YAMAHA_AV>'
+        body = bodyStart + '<Sound_Video><Pure_Direct><Mode>' + PureDirectString + '</Mode></Pure_Direct></Sound_Video>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverEnhancerActionTypeId:
@@ -570,53 +594,76 @@ def executeAction(info):
             enhancerString = "On"
         else:
             enhancerString = "Off"
-        body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Surround><Program_Sel><Current><Enhancer>' + enhancerString + '</Enhancer></Current></Program_Sel></Surround></Main_Zone></YAMAHA_AV>'
+        body = bodyStart + '<Surround><Program_Sel><Current><Enhancer>' + enhancerString + '</Enhancer></Current></Program_Sel></Surround>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverBassActionTypeId:
         bass = str(info.paramValue(receiverBassActionBassParamTypeId))
         logger.log("Bass set to", bass)
-        body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Sound_Video><Tone><Bass><Val>' + bass + '</Val><Exp>1</Exp><Unit>dB</Unit></Bass></Tone></Sound_Video></Main_Zone></YAMAHA_AV>'
+        body = bodyStart + '<Sound_Video><Tone><Bass><Val>' + bass + '</Val><Exp>1</Exp><Unit>dB</Unit></Bass></Tone></Sound_Video>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
+        info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverTrebleActionTypeId:
         treble = str(info.paramValue(receiverTrebleActionTrebleParamTypeId))
         logger.log("Treble set to", treble)
-        body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Sound_Video><Tone><Treble><Val>' + treble + '</Val><Exp>1</Exp><Unit>dB</Unit></Treble></Tone></Sound_Video></Main_Zone></YAMAHA_AV>'
+        body = bodyStart + '<Sound_Video><Tone><Treble><Val>' + treble + '</Val><Exp>1</Exp><Unit>dB</Unit></Treble></Tone></Sound_Video>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
+        info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverInputSourceActionTypeId:
-        inputSource = info.paramValue(receiverInputSourceActionInputSourceParamTypeId)
+    elif info.actionTypeId == receiverInputSourceActionTypeId or info.actionTypeId == zoneInputSourceActionTypeId:
+        if info.actionTypeId == receiverInputSourceActionTypeId:
+            inputSource = info.paramValue(receiverInputSourceActionInputSourceParamTypeId)
+        else:
+            inputSource = info.paramValue(zoneInputSourceActionInputSourceParamTypeId)
         logger.log("Input Source changed to", inputSource)
-        body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Input><Input_Sel>' + inputSource + '</Input_Sel></Input></Main_Zone></YAMAHA_AV>'
+        body = bodyStart + '<Input><Input_Sel>' + inputSource + '</Input_Sel></Input>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverSurroundModeActionTypeId:
         surroundMode = info.paramValue(receiverSurroundModeActionSurroundModeParamTypeId)
         logger.log("Surround Mode changed to", surroundMode)
         if surroundMode != "Straight":
-            body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Surround><Program_Sel><Current><Sound_Program>' + surroundMode + '</Sound_Program></Current></Program_Sel></Surround></Main_Zone></YAMAHA_AV>'
+            body = bodyStart + '<Surround><Program_Sel><Current><Sound_Program>' + surroundMode + '</Sound_Program></Current></Program_Sel></Surround>' + bodyEnd
         else:
-            body = '<YAMAHA_AV cmd="PUT"><Main_Zone><Surround><Program_Sel><Current><Straight>On</Straight></Current></Program_Sel></Surround></Main_Zone></YAMAHA_AV>'
+            body = bodyStart + '<Surround><Program_Sel><Current><Straight>On</Straight></Current></Program_Sel></Surround>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverShuffleActionTypeId:
+    elif info.actionTypeId == receiverShuffleActionTypeId or info.actionTypeId == zoneShuffleActionTypeId:
         # Check: shuffle state not stored/reverts?
-        shuffle = info.paramValue(receiverShuffleActionShuffleParamTypeId)
+        if info.actionTypeId == receiverShuffleActionTypeId:
+            shuffle = info.paramValue(receiverShuffleActionShuffleParamTypeId)
+        else:
+            shuffle = info.paramValue(zoneShuffleActionShuffleParamTypeId)
         if shuffle == True:
             shuffleString = "On"
         else:
             shuffleString = "Off"
-        body = '<YAMAHA_AV cmd="PUT"><SERVER><Play_Control><Play_Mode><Shuffle>' + shuffleString + '</Shuffle></Play_Mode></Play_Control></SERVER></YAMAHA_AV>'
+        body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Play_Mode><Shuffle>' + shuffleString + '</Shuffle></Play_Mode></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
-    elif info.actionTypeId == receiverRepeatActionTypeId:
+    elif info.actionTypeId == receiverRepeatActionTypeId or info.actionTypeId == zoneRepeatActionTypeId:
         # Check: repeat state not stored/reverts?
-        repeat = info.paramValue(receiverRepeatActionRepeatParamTypeId)
+        if info.actionTypeId == receiverRepeatActionTypeId:
+            repeat = info.paramValue(receiverRepeatActionRepeatParamTypeId)
+        else:
+            repeat = info.paramValue(zoneRepeatActionRepeatParamTypeId)
         logger.log("Repeat mode:", repeat)
         if repeat == "All":
             repeatString = "All"
@@ -624,8 +671,10 @@ def executeAction(info):
             repeatString = "One"
         else:
             repeatString = "Off"
-        body = '<YAMAHA_AV cmd="PUT"><SERVER><Play_Control><Play_Mode><Repeat>' + repeatString + '</Repeat></Play_Mode></Play_Control></SERVER></YAMAHA_AV>'
+        body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Play_Mode><Repeat>' + repeatString + '</Repeat></Play_Mode></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(1)
+        pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     else:
