@@ -12,24 +12,20 @@
                     "id": "f799a98a-8521-451e-a206-4b60e2dd0985",
                     "name": "receiver",
                     "displayName": "Yamaha AV Receiver",
-                    "createMethods": ["user"],
+                    "createMethods": ["discovery"],
                     "interfaces": ["mediaplayer", "mediacontroller", "volumecontroller", "mediametadataprovider", "connectable", "power"],
                     "paramTypes": [
-                        {
-                            "id": "5d4aa05d-f8ea-4f77-a5c6-90e5de132cdb",
-                            "name": "url",
-                            "displayName": "Device Address",
-                            "type" : "QString",
-                            "inputType": "IPv4Address",
-                            "defaultValue": "10.0.1.9"
-                        },
                         {
                             "id": "b77b3028-d67a-4f77-bd39-d3734319b89e",
                             "name": "addZones",
                             "displayName": "Add zones",
-                            "type" : "bool",
-                            "inputType": "None",
-                            "defaultValue": true
+                            "type" : "bool"
+                        },
+                        {
+                            "id": "0129f3eb-3cc6-47fa-9366-74194ec655f9",
+                            "name": "serial",
+                            "displayName": "Serial Number",
+                            "type": "QString"
                         }
                     ],
                     "settingsTypes": [
@@ -264,6 +260,14 @@
                             "possibleValues": ["None", "One", "All"],
                             "cached": false,
                             "writable": true
+                        },
+                        {
+                            "id": "b269c1f4-1881-461d-810b-b594de499490",
+                            "name": "url",
+                            "displayName": "Device Address",
+                            "displayNameEvent": "Device IP changed",
+                            "defaultValue": "0.0.0.0",
+                            "type" : "QString"
                         }
                     ],
                     "actionTypes": [
@@ -333,12 +337,6 @@
                     "createMethods": ["auto"],
                     "interfaces": ["mediaplayer", "mediacontroller", "volumecontroller", "mediametadataprovider", "connectable", "power"],
                     "paramTypes": [
-                        {
-                            "id": "8cdaa9ad-ce5a-4384-9f9a-ff0b7ab9deeb",
-                            "name": "url",
-                            "displayName": "Device Address",
-                            "type" : "QString"
-                        },
                         {
                             "id": "9abc9961-0582-4b31-8f28-6659a3434352",
                             "name": "serial",

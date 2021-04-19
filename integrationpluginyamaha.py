@@ -10,33 +10,131 @@ pollTimer = None
 
 playPoll = False
 
+def discoverThings(info):
+    if info.thingClassId == receiverThingClassId:
+
+
+        logger.log("Discovery started for", info.thingClassId)
+        discoveredIps = findIps()
+        
+        for i in range(0, len(discoveredIps)):
+            deviceIp = discoveredIps[i]
+            rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
+            body = '<YAMAHA_AV cmd="GET"><System><Config>GetParam</Config></System></YAMAHA_AV>'
+            headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+            rr = requests.post(rUrl, headers=headers, data=body)
+            pollResponse = rr.text
+            if rr.status_code == requests.codes.ok:
+                logger.log("Device with IP " + deviceIp + " is a supported Yamaha AVR.")
+                # get device info
+                stringIndex1 = pollResponse.find("<System_ID>")
+                stringIndex2 = pollResponse.find("</System_ID>")
+                responseExtract = pollResponse[stringIndex1+11:stringIndex2]
+                systemId = responseExtract
+                logger.log("System ID:", systemId)
+                stringIndex1 = pollResponse.find("<Model_Name>")
+                stringIndex2 = pollResponse.find("</Model_Name>")
+                responseExtract = pollResponse[stringIndex1+12:stringIndex2]
+                modelType = "Yamaha " + responseExtract
+                # check if device already known
+                exists = False
+                for thing in myThings():
+                    logger.log("Comparing to existing receivers: is %s a receiver?" % (thing.name))
+                    if thing.thingClassId == receiverThingClassId:
+                        logger.log("Yes, %s is a receiver." % (thing.name))
+                        if thing.paramValue(receiverThingSerialParamTypeId) == systemId:
+                            logger.log("Already have receiver with serial number %s in the system: %s" % (systemId, thing.name))
+                            exists = True
+                        else:
+                            logger.log("Thing %s doesn't match with found receiver with serial number %s" % (thing.name, systemId))
+                if exists == False: # Receiver doesn't exist yet, so add it
+                    thingDescriptor = nymea.ThingDescriptor(receiverThingClassId, modelType)
+                    thingDescriptor.params = [
+                        nymea.Param(receiverThingSerialParamTypeId, systemId)
+                    ]
+                    info.addDescriptor(thingDescriptor)
+                else: # Receiver already exists, so show it to allow reconfiguration
+                    thingDescriptor = nymea.ThingDescriptor(receiverThingClassId, modelType, thingId=thing.id)
+                    thingDescriptor.params = [
+                        nymea.Param(receiverThingSerialParamTypeId, systemId)
+                    ]
+                    info.addDescriptor(thingDescriptor)
+            else:
+                logger.log("Device with IP " + deviceIp + " does not appear to be a supported Yamaha AVR.")
+        info.finish(nymea.ThingErrorNoError)
+
+
+def findIps():
+    # no need of any external libraries, you can just call "serviceBrowser = hardwareManager.zeroconf.registerServiceBrowser()"
+    # and can then loop over "serviceBrowser.entries"# serviceBrowser = hardwareManager.zeroconf.registerServiceBrowser()
+    # for i in range(0, len(serviceBrowser.entries)):
+    #     logger.log(serviceBrowser.entries[i])
+    
+    # foreach (const ZeroConfServiceEntry &entry, m_serviceBrowser->serviceEntries()) {
+    #     if (entry.hostAddress().protocol() == QAbstractSocket::IPv6Protocol && entry.hostAddress().toString().startsWith("fe80")) {
+    #         // We don't support link-local ipv6 addresses yet. skip those entries
+    #         continue;
+    #     }
+    #     QString uuid;
+    #     foreach (const QString &txt, entry.txt()) {
+    #         if (txt.startsWith("uuid")) {
+    #             uuid = txt.split("=").last();
+    #             break;
+    #         }
+    #     }
+
+    #     if (QUuid(uuid) == kodiUuid) {
+    #         ipString = entry.hostAddress().toString();
+    #         port = entry.port();
+    #         break;
+    #     }
+    # }
+    return ["10.0.1.9", "10.0.1.19"]
+
 def setupThing(info):
     if info.thing.thingClassId == receiverThingClassId:
-        logger.log("setupThing called for", info.thing.name)
+        searchSystemId = info.thing.paramValue(receiverThingSerialParamTypeId)
+        logger.log("setupThing called for", info.thing.name, searchSystemId)
+
+        discoveredIps = findIps()
+        found = False
+        info.thing.setStateValue(receiverUrlStateTypeId, "0.0.0.0")
         
-        # discovery of receivers?:
-        # import socket
-        # print ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1])
-
-        deviceIp = info.thing.paramValue(receiverThingUrlParamTypeId)
-        rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
-        body = '<YAMAHA_AV cmd="GET"><System><Config>GetParam</Config></System></YAMAHA_AV>'
-        headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
-        rr = requests.post(rUrl, headers=headers, data=body)
-        pollResponse = rr.text
-
-        if rr.status_code == requests.codes.ok:
-            logger.log("Device with IP " + deviceIp + " is Yamaha AVR.")
-            setupReceiver(info.thing, rr)
+        for i in range(0, len(discoveredIps)):
+            deviceIp = discoveredIps[i]
+            rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
+            body = '<YAMAHA_AV cmd="GET"><System><Config>GetParam</Config></System></YAMAHA_AV>'
+            headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+            rr = requests.post(rUrl, headers=headers, data=body)
+            pollResponse = rr.text
+            if rr.status_code == requests.codes.ok:
+                logger.log("Device with IP " + deviceIp + " is a supported Yamaha AVR.")
+                # get device info
+                stringIndex1 = pollResponse.find("<System_ID>")
+                stringIndex2 = pollResponse.find("</System_ID>")
+                responseExtract = pollResponse[stringIndex1+11:stringIndex2]
+                systemId = responseExtract
+                logger.log("System ID:", systemId)
+                # check if this is the device with the serial number we're looking for
+                if systemId == searchSystemId:
+                    logger.log("Device with IP " + deviceIp + " is the existing device.")
+                    found = True
+                    info.thing.setStateValue(receiverUrlStateTypeId, deviceIp)
+                    rr2 = rr
+            else:
+                logger.log("Device with IP " + deviceIp + " does not appear to be a supported Yamaha AVR.")
+        if found == True:
+            info.thing.setStateValue(receiverConnectedStateTypeId, True)
             pollReceiver(info.thing)
             info.finish(nymea.ThingErrorNoError)
         else:
-            info.finish(nymea.ThingErrorHardwareFailure, "Error connecting to the device in the network.");
+            info.thing.setStateValue(receiverConnectedStateTypeId, False)
+            info.finish(nymea.ThingErrorHardwareFailure, "Error connecting to the device in the network.")
         
         logger.log("Receiver added:", info.thing.name)
         if info.thing.paramValue(receiverThingAddZonesParamTypeId) == True:
             logger.log("Now adding zones for receiver:", info.thing.name)
-            setupZones(info.thing, rr)
+            setupZones(info.thing, rr2)
 
         # If no poll timer is set up yet, start it now
         logger.log("Creating polltimer")
@@ -54,7 +152,7 @@ def setupThing(info):
         for possibleParent in myThings():
             if possibleParent.id == info.thing.parentId:
                 parentReceiver = possibleParent
-        deviceIp = parentReceiver.paramValue(receiverThingUrlParamTypeId)
+        deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
         zoneId = info.thing.paramValue(zoneThingZoneIdParamTypeId)
         zone = "Zone_" + str(zoneId)
         try:
@@ -71,27 +169,6 @@ def setupThing(info):
         info.finish(nymea.ThingErrorNoError)
         return
 
-
-def setupReceiver(receiver, response):
-    pollResponse = response.text
-    if response.status_code == requests.codes.ok:
-        receiver.setStateValue(receiverConnectedStateTypeId, True)
-        # To do: get available features & inputs -- see below for receiver reply with required info; features available for all zones, inputs only for main zone?
-        # To do: get available sound programs
-        stringIndex1 = pollResponse.find("<System_ID>")
-        stringIndex2 = pollResponse.find("</System_ID>")
-        responseExtract = pollResponse[stringIndex1+11:stringIndex2]
-        systemId = responseExtract
-        logger.log("System ID:", systemId)
-        stringIndex1 = pollResponse.find("<Model_Name>")
-        stringIndex2 = pollResponse.find("</Model_Name>")
-        responseExtract = pollResponse[stringIndex1+12:stringIndex2]
-        modelType = "Yamaha " + responseExtract
-        logger.log("Model type:", modelType)
-        # how to save type to thing? (when setting up zones: can be passed on to zone upon auto creation, but would this be useful?)
-        # how to list features & inputs?
-    else:
-        receiver.setStateValue(receiverConnectedStateTypeId, False)
 
 def setupZones(receiver, response):
     pollResponse = response.text
@@ -118,7 +195,6 @@ def setupZones(receiver, response):
                     logger.log("Yes, %s is a zone." % (thing.name))
                     if thing.paramValue(zoneThingSerialParamTypeId) == systemId and thing.paramValue(zoneThingZoneIdParamTypeId) == zoneNbr:
                         logger.log("Already have zone with number %s in the system" % (str(zoneNbr)))
-                        # Yep, already here... skip it
                         exists = True
                     else:
                         logger.log("Thing %s doesn't match with found zone with number %s" % (thing.name, str(zoneNbr)))
@@ -126,15 +202,13 @@ def setupZones(receiver, response):
                     logger.log("Yes, %s is a main zone." % (thing.name))
                 else:
                      logger.log("No, %s is not a zone." % (thing.name))
-            if exists == False: # Zone doesn't exist yet, so add it --> Zone was added double, so test this change!
+            if exists == False: # Zone doesn't exist yet, so add it
                 discoveredZones.append(zone)
                 zoneName = receiver.name + " Zone " + str(zoneNbr)
                 logger.log("Found new additional zone:", zone, zoneNbr)
                 logger.log("Adding %s to the system with parent:" % (zoneName), receiver.name, receiver.id)
                 thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, parentId=receiver.id)
-                deviceIp = "0.0.0.0"
                 thingDescriptor.params = [
-                    nymea.Param(zoneThingUrlParamTypeId, deviceIp),
                     nymea.Param(zoneThingSerialParamTypeId, systemId),
                     nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
                 ]
@@ -151,13 +225,13 @@ def pollReceiver(info):
         for possibleParent in myThings():
             if possibleParent.id == info.parentId:
                 parentReceiver = possibleParent
-        deviceIp = parentReceiver.paramValue(receiverThingUrlParamTypeId)
+        deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
         zoneId = info.paramValue(zoneThingZoneIdParamTypeId)
         logger.log("polling zone", deviceIp, info.name)
         bodyStart = '<YAMAHA_AV cmd="GET"><Zone_' + str(zoneId) + '>'
         bodyEnd = '</Zone_' + str(zoneId) + '></YAMAHA_AV>'
     elif info.thingClassId == receiverThingClassId:
-        deviceIp = info.paramValue(receiverThingUrlParamTypeId)
+        deviceIp = info.stateValue(receiverUrlStateTypeId)
         logger.log("polling receiver", deviceIp, info.name + " Main Zone")
         bodyStart = '<YAMAHA_AV cmd="GET"><Main_Zone>'
         bodyEnd = '</Main_Zone></YAMAHA_AV>'
@@ -421,7 +495,6 @@ def pollService():
         pollTimer = threading.Timer(30, pollService)
     pollTimer.start()
 
-# add distinction between receiver & zone
 def executeAction(info):
     pollReceiver(info.thing)
     # To do: also add pollService call after actions
@@ -431,13 +504,13 @@ def executeAction(info):
         for possibleParent in myThings():
             if possibleParent.id == info.thing.parentId:
                 parentReceiver = possibleParent
-        deviceIp = parentReceiver.paramValue(receiverThingUrlParamTypeId)
+        deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
         zoneId = info.thing.paramValue(zoneThingZoneIdParamTypeId)
         bodyStart = '<YAMAHA_AV cmd="PUT"><Zone_' + str(zoneId) + '>'
         bodyEnd = '</Zone_' + str(zoneId) + '></YAMAHA_AV>'
         source = info.thing.stateValue(zoneInputSourceStateTypeId)
     elif info.thing.thingClassId == receiverThingClassId:
-        deviceIp = info.thing.paramValue(receiverThingUrlParamTypeId)
+        deviceIp = info.thing.stateValue(receiverUrlStateTypeId)
         bodyStart = '<YAMAHA_AV cmd="PUT"><Main_Zone>'
         bodyEnd = '</Main_Zone></YAMAHA_AV>'
         source = info.thing.stateValue(receiverInputSourceStateTypeId)
