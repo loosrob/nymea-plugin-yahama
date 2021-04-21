@@ -248,8 +248,10 @@ def pollReceiver(info):
             # Get power state
             if pollResponse.find("<Power>Standby</Power>") != -1:
                 receiver.setStateValue(receiverPowerStateTypeId, False)
+                powerState = False
             elif pollResponse.find("<Power>On</Power>") != -1:
                 receiver.setStateValue(receiverPowerStateTypeId, True)
+                powerState = True
             else:
                 logger.log("Power state not found!")
             # Get mute state
@@ -313,7 +315,7 @@ def pollReceiver(info):
             body = '<YAMAHA_AV cmd="GET"><' + inputSource + '><Play_Info>GetParam</Play_Info></' + inputSource + '></YAMAHA_AV>'
             headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
             plr = requests.post(rUrl, headers=headers, data=body)
-            if plr.status_code == requests.codes.ok:
+            if plr.status_code == requests.codes.ok and powerState == True:
                 playerResponse = plr.text
                 # Get repeat state
                 stringIndex1 = playerResponse.find("<Repeat>")
@@ -382,8 +384,10 @@ def pollReceiver(info):
             # Get power state
             if pollResponse.find("<Power>Standby</Power>") != -1:
                 zone.setStateValue(zonePowerStateTypeId, False)
+                powerState = False
             elif pollResponse.find("<Power>On</Power>") != -1:
                 zone.setStateValue(zonePowerStateTypeId, True)
+                powerState = True
             else:
                 logger.log("Power state not found!")
             # Get mute state
@@ -414,7 +418,7 @@ def pollReceiver(info):
             body = '<YAMAHA_AV cmd="GET"><' + inputSource + '><Play_Info>GetParam</Play_Info></' + inputSource + '></YAMAHA_AV>'
             headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
             plr = requests.post(rUrl, headers=headers, data=body)
-            if plr.status_code == requests.codes.ok:
+            if plr.status_code == requests.codes.ok and powerState == True:
                 playerResponse = plr.text
                 # Get repeat state
                 stringIndex1 = playerResponse.find("<Repeat>")
@@ -541,7 +545,7 @@ def executeAction(info):
             body = bodyStart + '<Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume>' + bodyEnd
             logger.log("Request body:", body)
             pr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -565,43 +569,59 @@ def executeAction(info):
                 break
             body = bodyStart + '<Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume>' + bodyEnd
             pr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverSkipBackActionTypeId or info.actionTypeId == zoneSkipBackActionTypeId:
         body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Skip Rev</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
+        # AirPlay statusupdates appear to take a while longer to be available in API
+        if source == "AirPlay":
+            time.sleep(6)
+            pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverStopActionTypeId or info.actionTypeId == zoneStopActionTypeId:
         body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Stop</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
+        if source == "AirPlay":
+            time.sleep(6)
+            pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverPlayActionTypeId or info.actionTypeId == zonePlayActionTypeId:
         body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Play</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
+        if source == "AirPlay":
+            time.sleep(6)
+            pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverPauseActionTypeId or info.actionTypeId == zonePauseActionTypeId:
         body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Pause</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
+        if source == "AirPlay":
+            time.sleep(6)
+            pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverSkipNextActionTypeId or info.actionTypeId == zoneSkipNextActionTypeId:
         body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Skip Fwd</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
+        if source == "AirPlay":
+            time.sleep(6)
+            pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverPowerActionTypeId or info.actionTypeId == zonePowerActionTypeId:
@@ -616,7 +636,7 @@ def executeAction(info):
         body = bodyStart + '<Power_Control><Power>' + powerString + '</Power></Power_Control>' + bodyEnd
         headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -632,7 +652,7 @@ def executeAction(info):
         body = bodyStart + '<Volume><Mute>' + muteString + '</Mute></Volume>' + bodyEnd
         headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -645,7 +665,7 @@ def executeAction(info):
         logger.log("Volume set to", newVolume)
         body = bodyStart + '<Volume><Lvl><Val>' + volumeString + '</Val><Exp>1</Exp><Unit>dB</Unit></Lvl></Volume>' + bodyEnd
         pr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -657,7 +677,7 @@ def executeAction(info):
             PureDirectString = "Off"
         body = bodyStart + '<Sound_Video><Pure_Direct><Mode>' + PureDirectString + '</Mode></Pure_Direct></Sound_Video>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -669,7 +689,7 @@ def executeAction(info):
             enhancerString = "Off"
         body = bodyStart + '<Surround><Program_Sel><Current><Enhancer>' + enhancerString + '</Enhancer></Current></Program_Sel></Surround>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -678,7 +698,7 @@ def executeAction(info):
         logger.log("Bass set to", bass)
         body = bodyStart + '<Sound_Video><Tone><Bass><Val>' + bass + '</Val><Exp>1</Exp><Unit>dB</Unit></Bass></Tone></Sound_Video>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -687,7 +707,7 @@ def executeAction(info):
         logger.log("Treble set to", treble)
         body = bodyStart + '<Sound_Video><Tone><Treble><Val>' + treble + '</Val><Exp>1</Exp><Unit>dB</Unit></Treble></Tone></Sound_Video>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -699,7 +719,7 @@ def executeAction(info):
         logger.log("Input Source changed to", inputSource)
         body = bodyStart + '<Input><Input_Sel>' + inputSource + '</Input_Sel></Input>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -711,7 +731,7 @@ def executeAction(info):
         else:
             body = bodyStart + '<Surround><Program_Sel><Current><Straight>On</Straight></Current></Program_Sel></Surround>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -727,7 +747,7 @@ def executeAction(info):
             shuffleString = "Off"
         body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Play_Mode><Shuffle>' + shuffleString + '</Shuffle></Play_Mode></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -746,7 +766,7 @@ def executeAction(info):
             repeatString = "Off"
         body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Play_Mode><Repeat>' + repeatString + '</Repeat></Play_Mode></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
-        time.sleep(1)
+        time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
@@ -754,6 +774,206 @@ def executeAction(info):
         logger.log("Action not yet implemented for thing")
         info.finish(nymea.ThingErrorNoError)
         return
+
+
+def browseThing(browseResult):
+    zoneOrReceiver = browseResult.thing
+    pollReceiver(zoneOrReceiver)
+    if zoneOrReceiver.thingClassId == zoneThingClassId:
+        # get parent receiver thing, needed to get deviceIp
+        for possibleParent in myThings():
+            if possibleParent.id == zoneOrReceiver.parentId:
+                parentReceiver = possibleParent
+        deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
+        zoneId = zoneOrReceiver.paramValue(zoneThingZoneIdParamTypeId)
+        source = zoneOrReceiver.stateValue(zoneInputSourceStateTypeId)
+    elif zoneOrReceiver.thingClassId == receiverThingClassId:
+        deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
+        source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
+
+    rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
+    headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+    scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
+
+    if browseResult.itemId == "":
+        # go to first menu layer
+        selLayer = 1
+        selItem = 0
+    else:
+        splitId = browseResult.itemId.split("-",4)
+        selLayer = int(splitId[1])
+        selItem = int(splitId[3])
+        selTxt = splitId[4]
+
+    # go up to the selected menu level if needed
+    browseResponse, menuLayer = browseMenuReady(rUrl, source)
+    while menuLayer > selLayer:
+        menuLevelUp(rUrl, source)
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+    
+    gotoLine1(rUrl, source)
+    
+    if selItem > 0:
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+        currentLine, maxLine = getLineNbrs(browseResponse)
+        while selItem > currentLine + 7:
+            # jump to the list page with the selected line
+            remainder = selItem % 8
+            if remainder == 0:
+                remainder = 8
+            jumpBody = '<YAMAHA_AV cmd="PUT"><SERVER><List_Control><Jump_Line>' + str(selItem - remainder + 1) + '</Jump_Line></List_Control></SERVER></YAMAHA_AV>'
+            jr = requests.post(rUrl, headers=headers, data=jumpBody)
+            # confirm we got to right page
+            browseResponse, menuLayer = browseMenuReady(rUrl, source)
+            currentLine, maxLine = getLineNbrs(browseResponse)
+        # now select correct line to go to the next menu level
+        selectBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Direct_Sel>Line_' + str(selItem - currentLine + 1) + '</Direct_Sel></List_Control></' + source + '></YAMAHA_AV>'
+        sr = requests.post(rUrl, headers=headers, data=selectBody)
+
+    # browse menu level: keep going through menu pages (of 8 items per page) while last page hasn't been reached
+    loop = True
+    while loop == True:
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+        currentLine, maxLine = getLineNbrs(browseResponse)
+        # read the 8 lines in the current browseResponse page
+        for i in range(1, 9):
+            itemTxt, itemAttr = readLine(browseResponse, i)
+            treeInfo = "layer-" + str(menuLayer) + "-item-" + str(currentLine+i-1) + "-" + itemTxt
+            if itemAttr == "Container":
+                browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxt, browsable=True, icon=nymea.BrowserIconFavorites))
+            elif itemAttr == "Item":
+                browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxt, executable=True, icon=nymea.BrowserIconFavorites))
+            else:
+                # found unselectable item, indicating end of list, stop loop
+                if len(itemTxt) > 0:
+                    browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxt, "Not selectable on this receiver", executable=False, disabled=True, icon=nymea.BrowserIconFavorites))
+                else:
+                    loop = False
+        if maxLine > currentLine + 7 and loop == True:
+            # end of list not yet reached, go to next page
+            pr = requests.post(rUrl, headers=headers, data=scrollBody)
+        else:
+            # last page, stop loop
+            loop = False
+    
+    browseResult.finish(nymea.ThingErrorNoError)
+    return
+
+
+def executeBrowserItem(info):
+    logger.log("Browser item clicked:", info.itemId)
+    zoneOrReceiver = info.thing
+    pollReceiver(zoneOrReceiver)
+    if zoneOrReceiver.thingClassId == zoneThingClassId:
+        # get parent receiver thing, needed to get deviceIp
+        for possibleParent in myThings():
+            if possibleParent.id == zoneOrReceiver.parentId:
+                parentReceiver = possibleParent
+        deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
+        zoneId = zoneOrReceiver.paramValue(zoneThingZoneIdParamTypeId)
+        source = zoneOrReceiver.stateValue(zoneInputSourceStateTypeId)
+    elif zoneOrReceiver.thingClassId == receiverThingClassId:
+        deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
+        source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
+
+    rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
+    headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+    scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
+    
+    splitId = info.itemId.split("-",4)
+    selLayer = int(splitId[1])
+    selItem = int(splitId[3])
+    selTxt = splitId[4]
+
+    # go up to the selected menu level if needed
+    browseResponse, menuLayer = browseMenuReady(rUrl, source)
+    while menuLayer > selLayer:
+        menuLevelUp(rUrl, source)
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+
+    gotoLine1(rUrl, source)
+    
+    selectBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Direct_Sel>Line_' + str(selItem) + '</Direct_Sel></List_Control></' + source + '></YAMAHA_AV>'
+    logger.log("Selecting executed line on device", selectBody)
+    sr = requests.post(rUrl, headers=headers, data=selectBody)
+
+    info.finish(nymea.ThingErrorNoError)
+    time.sleep(0.5)
+    pollReceiver(zoneOrReceiver)
+    return
+
+
+def pageDown(rUrl, source):
+    # scroll to next page of list
+    headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+    scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
+    sr = requests.post(rUrl, headers=headers, data=scrollBody)
+    return
+
+
+def menuLevelUp(rUrl, source):
+    headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+    returnBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Cursor>Return</Cursor></List_Control></' + source + '></YAMAHA_AV>'
+    ur = requests.post(rUrl, headers=headers, data=returnBody)
+    return
+
+
+def readLine(browseResponse, i):
+    lineResult = []
+    stringIndex1 = browseResponse.find("<Line_" + str(i) + ">")
+    stringIndex2 = browseResponse.find("</Line_" + str(i) + ">")
+    browseTxt = browseResponse[stringIndex1+8:stringIndex2]
+    stringIndex1 = browseTxt.find("<Txt>")
+    stringIndex2 = browseTxt.find("</Txt>")
+    itemTxt = browseTxt[stringIndex1+5:stringIndex2]
+    stringIndex1 = browseTxt.find("<Attribute>")
+    stringIndex2 = browseTxt.find("</Attribute>")
+    itemAttr = browseTxt[stringIndex1+11:stringIndex2]
+    return itemTxt, itemAttr
+
+
+def getLineNbrs(browseResponse):
+    stringIndex1 = browseResponse.find("<Current_Line>")
+    stringIndex2 = browseResponse.find("</Current_Line>")
+    currentLine = int(browseResponse[stringIndex1+14:stringIndex2])
+    stringIndex1 = browseResponse.find("<Max_Line>")
+    stringIndex2 = browseResponse.find("</Max_Line>")
+    maxLine = int(browseResponse[stringIndex1+10:stringIndex2])
+    return currentLine, maxLine
+
+
+def gotoLine1(rUrl, source):
+    # make sure we are on the first line in the menu before continuing
+    headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+    browseBody = '<YAMAHA_AV cmd="GET"><' + source + '><List_Info>GetParam</List_Info></' + source + '></YAMAHA_AV>'   
+    browseResponse, menuLayer = browseMenuReady(rUrl, source)
+    jumpInt = 1
+    jumpBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Jump_Line>' + str(jumpInt) + '</Jump_Line></List_Control></' + source + '></YAMAHA_AV>'
+    jr = requests.post(rUrl, headers=headers, data=jumpBody)
+    return
+
+
+def browseMenuReady(rUrl, source):
+    # make sure menu status is Ready before sending any further commands, as they may not be processed by the receiver
+    # at same time, return list info as we got it anyway when checking menu status
+    logger.log("Waiting for menu status Ready & getting list info")
+    headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+    browseBody = '<YAMAHA_AV cmd="GET"><' + source + '><List_Info>GetParam</List_Info></' + source + '></YAMAHA_AV>'   
+    ready = False
+    while ready == False:
+        br = requests.post(rUrl, headers=headers, data=browseBody)
+        browseResponse = br.text
+        stringIndex1 = browseResponse.find("<Menu_Status>")
+        stringIndex2 = browseResponse.find("</Menu_Status>")
+        menuStatus = browseResponse[stringIndex1+13:stringIndex2]
+        if menuStatus == "Ready":
+            ready = True
+            stringIndex1 = browseResponse.find("<Menu_Layer>")
+            stringIndex2 = browseResponse.find("</Menu_Layer>")
+            menuLayer = int(browseResponse[stringIndex1+12:stringIndex2])
+        else:
+            time.sleep(0.1)
+    return browseResponse, menuLayer
 
 
 def deinit():

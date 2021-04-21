@@ -14,6 +14,7 @@
                     "displayName": "Yamaha AV Receiver",
                     "createMethods": ["discovery"],
                     "interfaces": ["mediaplayer", "mediacontroller", "volumecontroller", "mediametadataprovider", "connectable", "power"],
+                    "browsable": true,
                     "paramTypes": [
                         {
                             "id": "b77b3028-d67a-4f77-bd39-d3734319b89e",
@@ -25,7 +26,8 @@
                             "id": "0129f3eb-3cc6-47fa-9366-74194ec655f9",
                             "name": "serial",
                             "displayName": "Serial Number",
-                            "type": "QString"
+                            "type": "QString",
+                            "readOnly": true
                         }
                     ],
                     "settingsTypes": [
@@ -336,18 +338,21 @@
                     "displayName": "Yamaha AV Receiver Zone",
                     "createMethods": ["auto"],
                     "interfaces": ["mediaplayer", "mediacontroller", "volumecontroller", "mediametadataprovider", "connectable", "power"],
+                    "browsable": true,
                     "paramTypes": [
                         {
                             "id": "9abc9961-0582-4b31-8f28-6659a3434352",
                             "name": "serial",
                             "displayName": "Serial Number",
-                            "type" : "QString"
+                            "type" : "QString",
+                            "readOnly": true
                         },
                         {
                             "id": "6cfafac2-4aa5-4e73-b06e-550f4f66bc6a",
                             "name": "zoneId",
                             "displayName": "Zone number",
-                            "type" : "int"
+                            "type" : "int",
+                            "readOnly": true
                         }
                     ],
                     "settingsTypes": [
