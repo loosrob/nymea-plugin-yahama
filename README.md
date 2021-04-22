@@ -4,7 +4,8 @@ This plugin allows to control your Yamaha (non-MusicCast) AV receivers.
 
 Each supported receiver on your local area network should appear automatically in the system.
 
-Browsing is supported, but can be slow due to the nature of the Yamaha API. 
+Browsing is supported, but can be slow due to the nature of the Yamaha API.
+As a nice extra, a random album on a random server can be started with a simple action. 
 
 ## Supported Things
 

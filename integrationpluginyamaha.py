@@ -3,12 +3,19 @@ import time
 import threading
 import json
 import requests
+import random
 
 thingsAndReceivers = {}
 
 pollTimer = None
 
 playPoll = False
+
+# to do:
+# * add discovery of devices on network --> use nymea framework or external tool?
+# * discovery of zones instead of auto
+# * very long lists in browsing: limit to 200 entries & add option "show all"? -- can menu items be removed?
+
 
 def discoverThings(info):
     if info.thingClassId == receiverThingClassId:
@@ -501,8 +508,6 @@ def pollService():
 
 def executeAction(info):
     pollReceiver(info.thing)
-    # To do: also add pollService call after actions
-    
     if info.thing.thingClassId == zoneThingClassId:
         # get parent receiver thing, needed to get deviceIp
         for possibleParent in myThings():
@@ -770,10 +775,71 @@ def executeAction(info):
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
+    elif info.actionTypeId == receiverRandomAlbumActionTypeId or info.actionTypeId == zoneRandomAlbumActionTypeId:
+        playRandomAlbum(rUrl, source)
+        time.sleep(0.5)
+        pollReceiver(info.thing)
+        info.finish(nymea.ThingErrorNoError)
     else:
         logger.log("Action not yet implemented for thing")
         info.finish(nymea.ThingErrorNoError)
         return
+
+
+def playRandomAlbum(rUrl, source):
+    # currently source needs to be SERVER
+    # To do: add code to filter out unselectable items
+    if source == "SERVER":
+        browseTree = ["Random", "Music", "By Album", "Random", "Play"]
+        logger.log("Playing random album on source " + source)
+    else:
+        browseTree = []
+        logger.log("Source not supported for this action")
+    # go up to the main menu level if needed
+    if len(browseTree) > 0:
+        selLayer = 1
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+        while menuLayer > selLayer:
+            menuLevelUp(rUrl, source)
+            browseResponse, menuLayer = browseMenuReady(rUrl, source)
+    # navigate browseTree (first item select random server, then folder "Music", ...)
+    for i in range (0, len(browseTree)):
+        if browseTree[i] == "Random":
+            browseResponse, menuLayer = browseMenuReady(rUrl, source)
+            currentLine, maxLine = getLineNbrs(browseResponse)
+            selItem = random.randint(1, maxLine)
+            selectLine(rUrl, source, selItem)
+        elif browseTree[i] == "Play":
+            selectLine(rUrl, source, 1)
+        else:
+            selItem = findLine(rUrl, source, browseTree[i])
+            selectLine(rUrl, source, selItem)
+    return
+
+
+def findLine(rUrl, source, searchTxt):
+    #headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+    #scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
+
+    # browse menu level: keep going through menu pages (of 8 items per page) until lineTxt is found
+    loop = True
+    selItem = 0
+    while loop == True:
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+        currentLine, maxLine = getLineNbrs(browseResponse)
+        # read the 8 lines in the current browseResponse page
+        for i in range(1, 9):
+            itemTxt, itemAttr = readLine(browseResponse, i)
+            if itemTxt == searchTxt:
+                selItem = currentLine + i - 1
+                loop = False
+        if maxLine > currentLine + 7 and loop == True:
+            # end of list not yet reached, go to next page
+            pageDown(rUrl, source)
+        else:
+            # last page, stop loop
+            loop = False
+    return selItem
 
 
 def browseThing(browseResult):
@@ -785,15 +851,13 @@ def browseThing(browseResult):
             if possibleParent.id == zoneOrReceiver.parentId:
                 parentReceiver = possibleParent
         deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
-        zoneId = zoneOrReceiver.paramValue(zoneThingZoneIdParamTypeId)
         source = zoneOrReceiver.stateValue(zoneInputSourceStateTypeId)
     elif zoneOrReceiver.thingClassId == receiverThingClassId:
         deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
-
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
-    headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
-    scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
+    #headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+    #scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
 
     if browseResult.itemId == "":
         # go to first menu layer
@@ -811,24 +875,7 @@ def browseThing(browseResult):
         menuLevelUp(rUrl, source)
         browseResponse, menuLayer = browseMenuReady(rUrl, source)
     
-    gotoLine1(rUrl, source)
-    
-    if selItem > 0:
-        browseResponse, menuLayer = browseMenuReady(rUrl, source)
-        currentLine, maxLine = getLineNbrs(browseResponse)
-        while selItem > currentLine + 7:
-            # jump to the list page with the selected line
-            remainder = selItem % 8
-            if remainder == 0:
-                remainder = 8
-            jumpBody = '<YAMAHA_AV cmd="PUT"><SERVER><List_Control><Jump_Line>' + str(selItem - remainder + 1) + '</Jump_Line></List_Control></SERVER></YAMAHA_AV>'
-            jr = requests.post(rUrl, headers=headers, data=jumpBody)
-            # confirm we got to right page
-            browseResponse, menuLayer = browseMenuReady(rUrl, source)
-            currentLine, maxLine = getLineNbrs(browseResponse)
-        # now select correct line to go to the next menu level
-        selectBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Direct_Sel>Line_' + str(selItem - currentLine + 1) + '</Direct_Sel></List_Control></' + source + '></YAMAHA_AV>'
-        sr = requests.post(rUrl, headers=headers, data=selectBody)
+    selectLine(rUrl, source, selItem)
 
     # browse menu level: keep going through menu pages (of 8 items per page) while last page hasn't been reached
     loop = True
@@ -851,7 +898,7 @@ def browseThing(browseResult):
                     loop = False
         if maxLine > currentLine + 7 and loop == True:
             # end of list not yet reached, go to next page
-            pr = requests.post(rUrl, headers=headers, data=scrollBody)
+            pageDown(rUrl, source)
         else:
             # last page, stop loop
             loop = False
@@ -861,7 +908,6 @@ def browseThing(browseResult):
 
 
 def executeBrowserItem(info):
-    logger.log("Browser item clicked:", info.itemId)
     zoneOrReceiver = info.thing
     pollReceiver(zoneOrReceiver)
     if zoneOrReceiver.thingClassId == zoneThingClassId:
@@ -870,15 +916,13 @@ def executeBrowserItem(info):
             if possibleParent.id == zoneOrReceiver.parentId:
                 parentReceiver = possibleParent
         deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
-        zoneId = zoneOrReceiver.paramValue(zoneThingZoneIdParamTypeId)
         source = zoneOrReceiver.stateValue(zoneInputSourceStateTypeId)
     elif zoneOrReceiver.thingClassId == receiverThingClassId:
         deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
-
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
-    headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
-    scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
+    # headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+    # scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
     
     splitId = info.itemId.split("-",4)
     selLayer = int(splitId[1])
@@ -891,15 +935,33 @@ def executeBrowserItem(info):
         menuLevelUp(rUrl, source)
         browseResponse, menuLayer = browseMenuReady(rUrl, source)
 
-    gotoLine1(rUrl, source)
-    
-    selectBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Direct_Sel>Line_' + str(selItem) + '</Direct_Sel></List_Control></' + source + '></YAMAHA_AV>'
-    logger.log("Selecting executed line on device", selectBody)
-    sr = requests.post(rUrl, headers=headers, data=selectBody)
+    selectLine(rUrl, source, selItem)
 
     info.finish(nymea.ThingErrorNoError)
     time.sleep(0.5)
     pollReceiver(zoneOrReceiver)
+    return
+
+
+def selectLine(rUrl, source, selItem):
+    if selItem > 0:
+        headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+        gotoLine1(rUrl, source)
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+        currentLine, maxLine = getLineNbrs(browseResponse)
+        while selItem > currentLine + 7:
+            # jump to the list page with the selected line
+            remainder = selItem % 8
+            if remainder == 0:
+                remainder = 8
+            jumpBody = '<YAMAHA_AV cmd="PUT"><SERVER><List_Control><Jump_Line>' + str(selItem - remainder + 1) + '</Jump_Line></List_Control></SERVER></YAMAHA_AV>'
+            jr = requests.post(rUrl, headers=headers, data=jumpBody)
+            # confirm we got to right page
+            browseResponse, menuLayer = browseMenuReady(rUrl, source)
+            currentLine, maxLine = getLineNbrs(browseResponse)
+        # now select correct line to go to the next menu level
+        selectBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Direct_Sel>Line_' + str(selItem - currentLine + 1) + '</Direct_Sel></List_Control></' + source + '></YAMAHA_AV>'
+        sr = requests.post(rUrl, headers=headers, data=selectBody)
     return
 
 
@@ -956,7 +1018,6 @@ def gotoLine1(rUrl, source):
 def browseMenuReady(rUrl, source):
     # make sure menu status is Ready before sending any further commands, as they may not be processed by the receiver
     # at same time, return list info as we got it anyway when checking menu status
-    logger.log("Waiting for menu status Ready & getting list info")
     headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
     browseBody = '<YAMAHA_AV cmd="GET"><' + source + '><List_Info>GetParam</List_Info></' + source + '></YAMAHA_AV>'   
     ready = False

@@ -274,6 +274,11 @@
                     ],
                     "actionTypes": [
                         {
+                            "id": "671abe60-b8a5-48cd-a138-9f4283a823d2",
+                            "name": "randomAlbum",
+                            "displayName": "Play Random Album"
+                        },
+                        {
                             "id": "dd1a44d1-ecb2-4752-a8d4-f3960dec6808",
                             "displayName": "Increase volume",
                             "name": "increaseVolume",
@@ -504,6 +509,11 @@
                         }
                     ],
                     "actionTypes": [
+                        {
+                            "id": "7ffbe00e-b5e6-4602-9c1c-7319c0fc3257",
+                            "name": "randomAlbum",
+                            "displayName": "Play Random Album"
+                        },
                         {
                             "id": "ed011bda-7b52-4ba1-a99e-60ddf31bc859",
                             "displayName": "Increase volume",
