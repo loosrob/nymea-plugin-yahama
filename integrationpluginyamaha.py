@@ -4,6 +4,41 @@ import threading
 import json
 import requests
 import random
+from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
+from typing import Callable, List
+
+# to do: add zeroconf to requirements.txt
+
+class ZeroconfDevice(object):
+    def __init__(self, name: str, ip: str, port: int, model: str, id: str) -> None:
+        self.name = name
+        self.ip = ip
+        self.port = port
+        self.model = model
+        self.id = id
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.__dict__})"
+
+    def __eq__(self, other) -> bool:
+        return self is other or self.__dict__ == other.__dict__
+
+class ZeroconfListener(object):
+    """Basic zeroconf listener."""
+
+    def __init__(self, func: Callable[[ServiceInfo], None]) -> None:
+        """Initialize zeroconf listener with function callback."""
+        self._func = func
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.__dict__})"
+
+    def __eq__(self, other) -> bool:
+        return self is other or self.__dict__ == other.__dict__
+
+    def add_service(self, zeroconf: Zeroconf, type: str, name: str) -> None:
+        """Callback function when zeroconf service is discovered."""
+        self._func(zeroconf.get_service_info(type, name))
 
 thingsAndReceivers = {}
 
@@ -12,10 +47,9 @@ pollTimer = None
 playPoll = False
 
 # to do:
-# * add discovery of devices on network --> use nymea framework or external tool?
+# * add discovery of devices on network using nymea framework
 # * discovery of zones instead of auto
 # * very long lists in browsing: limit to 200 entries & add option "show all"? -- can menu items be removed?
-
 
 def discoverThings(info):
     if info.thingClassId == receiverThingClassId:
@@ -70,8 +104,8 @@ def discoverThings(info):
                 logger.log("Device with IP " + deviceIp + " does not appear to be a supported Yamaha AVR.")
         info.finish(nymea.ThingErrorNoError)
 
-
 def findIps():
+    # To do: in future use nymea capabilities:
     # no need of any external libraries, you can just call "serviceBrowser = hardwareManager.zeroconf.registerServiceBrowser()"
     # and can then loop over "serviceBrowser.entries"# serviceBrowser = hardwareManager.zeroconf.registerServiceBrowser()
     # for i in range(0, len(serviceBrowser.entries)):
@@ -89,14 +123,54 @@ def findIps():
     #             break;
     #         }
     #     }
-
     #     if (QUuid(uuid) == kodiUuid) {
     #         ipString = entry.hostAddress().toString();
     #         port = entry.port();
     #         break;
     #     }
     # }
-    return ["10.0.1.9", "10.0.1.19"]
+    # for now we use zeroconf (def discover & classes ZeroconfDevice & ZeroconfListener) as borrowed from pyvizio
+
+    ipList = discover("_http._tcp.local.", 5)
+    logger.log(ipList)
+
+    discoveredIps = []
+    for i in range(0, len(ipList)):
+        deviceInfo = ipList[i]
+        if "Yamaha" in deviceInfo.name:
+            discoveredIps.append(deviceInfo.ip)
+    return discoveredIps
+    
+def discover(service_type: str, timeout: int = 5) -> List[ZeroconfDevice]:
+    """From pyvizio: Return all discovered zeroconf services of a given service type over given timeout period."""
+    services = []
+
+    def append_service(info: ServiceInfo) -> None:
+        """Append discovered zeroconf service to service list."""
+        name = info.name[: -(len(info.type) + 1)]
+        ip = info.parsed_addresses(IPVersion.V4Only)[0]
+        port = info.port
+        model = info.properties.get(b"name", "")
+        id = info.properties.get(b"id")
+
+        # handle id decode for various discovered use cases
+        if isinstance(id, bytes):
+            try:
+                int(id, 16)
+            except Exception:
+                id = id.hex()
+        else:
+            id = None
+
+        service = ZeroconfDevice(name, ip, port, model, id)
+        services.append(service)
+
+    zeroconf = Zeroconf()
+    ServiceBrowser(zeroconf, service_type, ZeroconfListener(append_service))
+    time.sleep(timeout)
+    zeroconf.close()
+
+    return services
 
 def setupThing(info):
     if info.thing.thingClassId == receiverThingClassId:
@@ -175,7 +249,6 @@ def setupThing(info):
         # set up polling for zone status
         info.finish(nymea.ThingErrorNoError)
         return
-
 
 def setupZones(receiver, response):
     pollResponse = response.text
@@ -487,7 +560,6 @@ def pollReceiver(info):
         else:
             zone.setStateValue(zoneConnectedStateTypeId, False)
 
-
 def pollService():
     logger.log("pollService!!!")
     global playPoll
@@ -785,7 +857,6 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
 
-
 def playRandomAlbum(rUrl, source):
     # currently source needs to be SERVER
     # To do: add code to filter out unselectable items
@@ -816,7 +887,6 @@ def playRandomAlbum(rUrl, source):
             selectLine(rUrl, source, selItem)
     return
 
-
 def findLine(rUrl, source, searchTxt):
     #headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
     #scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
@@ -840,7 +910,6 @@ def findLine(rUrl, source, searchTxt):
             # last page, stop loop
             loop = False
     return selItem
-
 
 def browseThing(browseResult):
     zoneOrReceiver = browseResult.thing
@@ -906,7 +975,6 @@ def browseThing(browseResult):
     browseResult.finish(nymea.ThingErrorNoError)
     return
 
-
 def executeBrowserItem(info):
     zoneOrReceiver = info.thing
     pollReceiver(zoneOrReceiver)
@@ -942,7 +1010,6 @@ def executeBrowserItem(info):
     pollReceiver(zoneOrReceiver)
     return
 
-
 def selectLine(rUrl, source, selItem):
     if selItem > 0:
         headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
@@ -964,7 +1031,6 @@ def selectLine(rUrl, source, selItem):
         sr = requests.post(rUrl, headers=headers, data=selectBody)
     return
 
-
 def pageDown(rUrl, source):
     # scroll to next page of list
     headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
@@ -972,13 +1038,11 @@ def pageDown(rUrl, source):
     sr = requests.post(rUrl, headers=headers, data=scrollBody)
     return
 
-
 def menuLevelUp(rUrl, source):
     headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
     returnBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Cursor>Return</Cursor></List_Control></' + source + '></YAMAHA_AV>'
     ur = requests.post(rUrl, headers=headers, data=returnBody)
     return
-
 
 def readLine(browseResponse, i):
     lineResult = []
@@ -993,7 +1057,6 @@ def readLine(browseResponse, i):
     itemAttr = browseTxt[stringIndex1+11:stringIndex2]
     return itemTxt, itemAttr
 
-
 def getLineNbrs(browseResponse):
     stringIndex1 = browseResponse.find("<Current_Line>")
     stringIndex2 = browseResponse.find("</Current_Line>")
@@ -1002,7 +1065,6 @@ def getLineNbrs(browseResponse):
     stringIndex2 = browseResponse.find("</Max_Line>")
     maxLine = int(browseResponse[stringIndex1+10:stringIndex2])
     return currentLine, maxLine
-
 
 def gotoLine1(rUrl, source):
     # make sure we are on the first line in the menu before continuing
@@ -1013,7 +1075,6 @@ def gotoLine1(rUrl, source):
     jumpBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Jump_Line>' + str(jumpInt) + '</Jump_Line></List_Control></' + source + '></YAMAHA_AV>'
     jr = requests.post(rUrl, headers=headers, data=jumpBody)
     return
-
 
 def browseMenuReady(rUrl, source):
     # make sure menu status is Ready before sending any further commands, as they may not be processed by the receiver
@@ -1036,13 +1097,11 @@ def browseMenuReady(rUrl, source):
             time.sleep(0.1)
     return browseResponse, menuLayer
 
-
 def deinit():
     global pollTimer
     # If we started a poll timer, cancel it on shutdown.
     if pollTimer is not None:
         pollTimer.cancel()
-
 
 def thingRemoved(thing):
     logger.log("removeThing called for", thing.name)
