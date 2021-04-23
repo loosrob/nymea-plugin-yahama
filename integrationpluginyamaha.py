@@ -4,12 +4,12 @@ import threading
 import json
 import requests
 import random
+import html
 from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
 from typing import Callable, List
 
-# to do: add zeroconf to requirements.txt
-
 class ZeroconfDevice(object):
+    # To do: replace with nymea serviceBrowser
     def __init__(self, name: str, ip: str, port: int, model: str, id: str) -> None:
         self.name = name
         self.ip = ip
@@ -24,6 +24,7 @@ class ZeroconfDevice(object):
         return self is other or self.__dict__ == other.__dict__
 
 class ZeroconfListener(object):
+    # To do: replace with nymea serviceBrowser
     """Basic zeroconf listener."""
 
     def __init__(self, func: Callable[[ServiceInfo], None]) -> None:
@@ -49,7 +50,10 @@ playPoll = False
 # to do:
 # * add discovery of devices on network using nymea framework
 # * discovery of zones instead of auto
-# * very long lists in browsing: limit to 200 entries & add option "show all"? -- can menu items be removed?
+# * add action play random to browse menu at server level
+# * very long lists in browsing: limit to 500 (or so) entries & add option "show all"
+#   * "Show all" could have subtext " this action can be slow"
+#   * prefix treeInfo with BI- for "browsable item" and EL- for "extend list"
 
 def discoverThings(info):
     if info.thingClassId == receiverThingClassId:
@@ -142,6 +146,7 @@ def findIps():
     return discoveredIps
     
 def discover(service_type: str, timeout: int = 5) -> List[ZeroconfDevice]:
+    # To do: replace with nymea serviceBrowser
     """From pyvizio: Return all discovered zeroconf services of a given service type over given timeout period."""
     services = []
 
@@ -427,19 +432,19 @@ def pollReceiver(info):
                     playStatus = "Stopped"
                     playPoll = False or playPoll
                 receiver.setStateValue(receiverPlaybackStatusStateTypeId, playStatus)
-                # Get meta info
+                # Get meta info itemTxtClean = html.unescape(itemTxt)
                 stringIndex1 = playerResponse.find("<Artist>")
                 stringIndex2 = playerResponse.find("</Artist>")
                 responseExtract = playerResponse[stringIndex1+8:stringIndex2]
-                receiver.setStateValue(receiverArtistStateTypeId, responseExtract)
+                receiver.setStateValue(receiverArtistStateTypeId, html.unescape(responseExtract))
                 stringIndex1 = playerResponse.find("<Album>")
                 stringIndex2 = playerResponse.find("</Album>")
                 responseExtract = playerResponse[stringIndex1+7:stringIndex2]
-                receiver.setStateValue(receiverCollectionStateTypeId, responseExtract)
+                receiver.setStateValue(receiverCollectionStateTypeId, html.unescape(responseExtract))
                 stringIndex1 = playerResponse.find("<Song>")
                 stringIndex2 = playerResponse.find("</Song>")
                 responseExtract = playerResponse[stringIndex1+6:stringIndex2]
-                receiver.setStateValue(receiverTitleStateTypeId, responseExtract)
+                receiver.setStateValue(receiverTitleStateTypeId, html.unescape(responseExtract))
                 stringIndex1 = playerResponse.find("<URL>")
                 stringIndex2 = playerResponse.find("</URL>")
                 responseExtract = playerResponse[stringIndex1+5:stringIndex2]
@@ -596,8 +601,7 @@ def executeAction(info):
         bodyEnd = '</Main_Zone></YAMAHA_AV>'
         source = info.thing.stateValue(receiverInputSourceStateTypeId)
 
-    logger.log("executeAction called for thing", info.thing.name, deviceIp, info.actionTypeId, info.params)
-    logger.log("action related to source:", source)
+    logger.log("executeAction called for thing", info.thing.name, deviceIp, source, info.actionTypeId, info.params)
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
     headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
 
@@ -620,7 +624,6 @@ def executeAction(info):
             else:
                 break
             body = bodyStart + '<Volume><Lvl><Val>' + step + '</Val><Exp></Exp><Unit></Unit></Lvl></Volume>' + bodyEnd
-            logger.log("Request body:", body)
             pr = requests.post(rUrl, headers=headers, data=body)
         time.sleep(0.5)
         pollReceiver(info.thing)
@@ -672,6 +675,7 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverPlayActionTypeId or info.actionTypeId == zonePlayActionTypeId:
+        # power on device first, so action will work when device is off when action is initiated?
         body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Play</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
         time.sleep(0.5)
@@ -789,6 +793,7 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverInputSourceActionTypeId or info.actionTypeId == zoneInputSourceActionTypeId:
+        # power on device first, so action will work when device is off when action is initiated?
         if info.actionTypeId == receiverInputSourceActionTypeId:
             inputSource = info.paramValue(receiverInputSourceActionInputSourceParamTypeId)
         else:
@@ -813,7 +818,6 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverShuffleActionTypeId or info.actionTypeId == zoneShuffleActionTypeId:
-        # Check: shuffle state not stored/reverts?
         if info.actionTypeId == receiverShuffleActionTypeId:
             shuffle = info.paramValue(receiverShuffleActionShuffleParamTypeId)
         else:
@@ -829,7 +833,6 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverRepeatActionTypeId or info.actionTypeId == zoneRepeatActionTypeId:
-        # Check: repeat state not stored/reverts?
         if info.actionTypeId == receiverRepeatActionTypeId:
             repeat = info.paramValue(receiverRepeatActionRepeatParamTypeId)
         else:
@@ -888,9 +891,6 @@ def playRandomAlbum(rUrl, source):
     return
 
 def findLine(rUrl, source, searchTxt):
-    #headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
-    #scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
-
     # browse menu level: keep going through menu pages (of 8 items per page) until lineTxt is found
     loop = True
     selItem = 0
@@ -921,22 +921,20 @@ def browseThing(browseResult):
                 parentReceiver = possibleParent
         deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(zoneInputSourceStateTypeId)
+        playRandomId = zoneRandomAlbumActionTypeId
     elif zoneOrReceiver.thingClassId == receiverThingClassId:
         deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
+        playRandomId = receiverRandomAlbumActionTypeId
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
-    #headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
-    #scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
+    maxItems = 24
 
     if browseResult.itemId == "":
         # go to first menu layer
         selLayer = 1
         selItem = 0
     else:
-        splitId = browseResult.itemId.split("-",4)
-        selLayer = int(splitId[1])
-        selItem = int(splitId[3])
-        selTxt = splitId[4]
+        selType, selLayer, selItem, selTxt = splitBrowseItem(browseResult.itemId)
 
     # go up to the selected menu level if needed
     browseResponse, menuLayer = browseMenuReady(rUrl, source)
@@ -954,11 +952,12 @@ def browseThing(browseResult):
         # read the 8 lines in the current browseResponse page
         for i in range(1, 9):
             itemTxt, itemAttr = readLine(browseResponse, i)
-            treeInfo = "layer-" + str(menuLayer) + "-item-" + str(currentLine+i-1) + "-" + itemTxt
+            itemTxtClean = html.unescape(itemTxt)
+            treeInfo = "BI-layer-" + str(menuLayer) + "-item-" + str(currentLine+i-1) + "-" + itemTxt
             if itemAttr == "Container":
-                browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxt, browsable=True, icon=nymea.BrowserIconFavorites))
+                browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, browsable=True, icon=nymea.BrowserIconFavorites))
             elif itemAttr == "Item":
-                browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxt, executable=True, icon=nymea.BrowserIconFavorites))
+                browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, executable=True, icon=nymea.BrowserIconFavorites))
             else:
                 # found unselectable item, indicating end of list, stop loop
                 if len(itemTxt) > 0:
@@ -989,13 +988,8 @@ def executeBrowserItem(info):
         deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
-    # headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
-    # scrollBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Page>Down</Page></List_Control></' + source + '></YAMAHA_AV>'
     
-    splitId = info.itemId.split("-",4)
-    selLayer = int(splitId[1])
-    selItem = int(splitId[3])
-    selTxt = splitId[4]
+    selType, selLayer, selItem, selTxt = splitBrowseItem(info.itemId)
 
     # go up to the selected menu level if needed
     browseResponse, menuLayer = browseMenuReady(rUrl, source)
@@ -1056,6 +1050,14 @@ def readLine(browseResponse, i):
     stringIndex2 = browseTxt.find("</Attribute>")
     itemAttr = browseTxt[stringIndex1+11:stringIndex2]
     return itemTxt, itemAttr
+
+def splitBrowseItem(itemId):
+    splitId = itemId.split("-",5)
+    selType = splitId[0]
+    selLayer = int(splitId[2])
+    selItem = int(splitId[4])
+    selTxt = splitId[5]
+    return selType, selLayer, selItem, selTxt
 
 def getLineNbrs(browseResponse):
     stringIndex1 = browseResponse.find("<Current_Line>")
