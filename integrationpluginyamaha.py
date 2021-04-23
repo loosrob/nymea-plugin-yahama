@@ -925,11 +925,12 @@ def browseThing(browseResult):
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
         playRandomId = receiverRandomAlbumActionTypeId
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
-    maxItems = 160
-    # maxItems is used to truncate very long lists, as browsing them is very slow due to the nature of Yamaha's API``
-    # the value of maxItems needs to be a multiple of 8 to work correctly with the browseResponse pages that contain 8 lines,
-    # and it needs to be browsable within nymea's browseThing timeout, so we take 160 which seems to work (216 usually works, but every so often seems to go beyond the timeout)
-    # (if you want to test this, and get stuck in an infinite loop, simply powering off the receiver (not via nymea) should help)
+    maxItems = 128
+    # maxItems is used to truncate very long lists, as browsing them is very slow due to the nature of Yamaha's API
+    # the value of maxItems needs to be a multiple of 8 to work correctly with the browseResponse pages that contain 8 lines
+    # and it needs to be browsable within nymea's browseThing timeout, which would be around 264-304
+    # but it also seems quite easy to overload the device by making to many API calls, so we limit to 128
+    # (if you want to test this and get stuck, powering off the receiver (not via nymea) should help)
 
     if browseResult.itemId == "":
         # go to first menu layer
