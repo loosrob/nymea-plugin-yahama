@@ -49,11 +49,9 @@ playPoll = False
 
 # to do:
 # * add discovery of devices on network using nymea framework
+# * turn on receiver when certain actions are executed? (e.g. play) -- power on seems to reset volume, so may not be OK to do this too much
 # * discovery of zones instead of auto
 # * add action play random to browse menu at server level
-# * very long lists in browsing: limit to 500 (or so) entries & add option "show all"
-#   * "Show all" could have subtext " this action can be slow"
-#   * prefix treeInfo with BI- for "browsable item" and EL- for "extend list"
 
 def discoverThings(info):
     if info.thingClassId == receiverThingClassId:
@@ -894,6 +892,7 @@ def findLine(rUrl, source, searchTxt):
     # browse menu level: keep going through menu pages (of 8 items per page) until lineTxt is found
     loop = True
     selItem = 0
+    gotoLine(rUrl, source, 1)
     while loop == True:
         browseResponse, menuLayer = browseMenuReady(rUrl, source)
         currentLine, maxLine = getLineNbrs(browseResponse)
@@ -912,6 +911,7 @@ def findLine(rUrl, source, searchTxt):
     return selItem
 
 def browseThing(browseResult):
+    # To do: check if receiver is on (or turn device on?)
     zoneOrReceiver = browseResult.thing
     pollReceiver(zoneOrReceiver)
     if zoneOrReceiver.thingClassId == zoneThingClassId:
@@ -927,12 +927,14 @@ def browseThing(browseResult):
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
         playRandomId = receiverRandomAlbumActionTypeId
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
-    maxItems = 24
+    maxItems = 1024 # needs to be multiple of 8 to work correctly with the browseResponse pages that contain 8 lines, so e.g. 512
 
     if browseResult.itemId == "":
         # go to first menu layer
+        selType = "BI"
         selLayer = 1
         selItem = 0
+        selTxt = "Main menu"
     else:
         selType, selLayer, selItem, selTxt = splitBrowseItem(browseResult.itemId)
 
@@ -942,39 +944,53 @@ def browseThing(browseResult):
         menuLevelUp(rUrl, source)
         browseResponse, menuLayer = browseMenuReady(rUrl, source)
     
-    selectLine(rUrl, source, selItem)
+    if selType == "BI":
+        selectLine(rUrl, source, selItem)
+    elif selType == "EL":
+        # jump to first line of truncated part of list
+        gotoLine(rUrl, source, maxItems + 1)
 
     # browse menu level: keep going through menu pages (of 8 items per page) while last page hasn't been reached
     loop = True
     while loop == True:
         browseResponse, menuLayer = browseMenuReady(rUrl, source)
         currentLine, maxLine = getLineNbrs(browseResponse)
-        # read the 8 lines in the current browseResponse page
-        for i in range(1, 9):
-            itemTxt, itemAttr = readLine(browseResponse, i)
-            itemTxtClean = html.unescape(itemTxt)
-            treeInfo = "BI-layer-" + str(menuLayer) + "-item-" + str(currentLine+i-1) + "-" + itemTxt
-            if itemAttr == "Container":
-                browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, browsable=True, icon=nymea.BrowserIconFavorites))
-            elif itemAttr == "Item":
-                browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, executable=True, icon=nymea.BrowserIconFavorites))
-            else:
-                # found unselectable item, indicating end of list, stop loop
-                if len(itemTxt) > 0:
-                    browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxt, "Not selectable on this receiver", executable=False, disabled=True, icon=nymea.BrowserIconFavorites))
-                else:
-                    loop = False
-        if maxLine > currentLine + 7 and loop == True:
-            # end of list not yet reached, go to next page
-            pageDown(rUrl, source)
-        else:
-            # last page, stop loop
+        # long lists (longer than maxItems) are truncated and can be extended with user action
+        if selType == "BI" and currentLine == (maxItems + 1):
+            # create info about menu structure (BI = browsable item, EL = extend list in case long list was truncated)
+            treeInfo = "EL-layer-" + str(menuLayer) + "-item-" + str(currentLine) + "-truncated"
+            browseResult.addItem(nymea.BrowserItem(treeInfo, "List truncated - click to show rest of list", "This action can be very slow", browsable=True, icon=nymea.BrowserIconFavorites))
+            # truncate results, stop loop
             loop = False
+        else:
+            # read the 8 lines in the current browseResponse page
+            for i in range(1, 9):
+                itemTxt, itemAttr = readLine(browseResponse, i)
+                itemTxtClean = html.unescape(itemTxt)
+                # create info about menu structure (BI = browsable item, EL = extend list in case long list was truncated)
+                treeInfo = "BI-layer-" + str(menuLayer) + "-item-" + str(currentLine+i-1) + "-" + itemTxt
+                if itemAttr == "Container":
+                    browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, browsable=True, icon=nymea.BrowserIconFavorites))
+                elif itemAttr == "Item":
+                    browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, executable=True, icon=nymea.BrowserIconFavorites))
+                else:
+                    # found unselectable item, indicating end of list, stop loop
+                    if len(itemTxt) > 0:
+                        browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxt, "Not selectable on this receiver", executable=False, disabled=True, icon=nymea.BrowserIconFavorites))
+                    else:
+                        loop = False
+            if maxLine > currentLine + 7 and loop == True:
+                # end of list not yet reached, go to next page
+                pageDown(rUrl, source)
+            else:
+                # last page, stop loop
+                loop = False
     
     browseResult.finish(nymea.ThingErrorNoError)
     return
 
 def executeBrowserItem(info):
+    # To do: check if receiver is on (or turn device on?)
     zoneOrReceiver = info.thing
     pollReceiver(zoneOrReceiver)
     if zoneOrReceiver.thingClassId == zoneThingClassId:
@@ -1007,7 +1023,7 @@ def executeBrowserItem(info):
 def selectLine(rUrl, source, selItem):
     if selItem > 0:
         headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
-        gotoLine1(rUrl, source)
+        gotoLine(rUrl, source, 1)
         browseResponse, menuLayer = browseMenuReady(rUrl, source)
         currentLine, maxLine = getLineNbrs(browseResponse)
         while selItem > currentLine + 7:
@@ -1068,13 +1084,12 @@ def getLineNbrs(browseResponse):
     maxLine = int(browseResponse[stringIndex1+10:stringIndex2])
     return currentLine, maxLine
 
-def gotoLine1(rUrl, source):
-    # make sure we are on the first line in the menu before continuing
+def gotoLine(rUrl, source, lineNbr):
+    # e.g. line 1: make sure we are on the first line in the menu before continuing
     headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
     browseBody = '<YAMAHA_AV cmd="GET"><' + source + '><List_Info>GetParam</List_Info></' + source + '></YAMAHA_AV>'   
     browseResponse, menuLayer = browseMenuReady(rUrl, source)
-    jumpInt = 1
-    jumpBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Jump_Line>' + str(jumpInt) + '</Jump_Line></List_Control></' + source + '></YAMAHA_AV>'
+    jumpBody = '<YAMAHA_AV cmd="PUT"><' + source + '><List_Control><Jump_Line>' + str(lineNbr) + '</Jump_Line></List_Control></' + source + '></YAMAHA_AV>'
     jr = requests.post(rUrl, headers=headers, data=jumpBody)
     return
 
