@@ -49,15 +49,12 @@ playPoll = False
 
 # to do:
 # * add discovery of devices on network using nymea framework
-# * turn on receiver when certain actions are executed? (e.g. play) -- power on seems to reset volume, so may not be OK to do this too much
 # * discovery of zones instead of auto
 # * add action play random to browse menu at server level
 # * improve html unescape for &amp; (and other characters?)
 
 def discoverThings(info):
     if info.thingClassId == receiverThingClassId:
-
-
         logger.log("Discovery started for", info.thingClassId)
         discoveredIps = findIps()
         
@@ -928,10 +925,10 @@ def browseThing(browseResult):
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
         playRandomId = receiverRandomAlbumActionTypeId
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
-    maxItems = 216
+    maxItems = 160
     # maxItems is used to truncate very long lists, as browsing them is very slow due to the nature of Yamaha's API``
     # the value of maxItems needs to be a multiple of 8 to work correctly with the browseResponse pages that contain 8 lines,
-    # and it needs to be browsable within nymea's browseThing timeout, which appears to be around 250-300, so we take 264 to have some margin
+    # and it needs to be browsable within nymea's browseThing timeout, so we take 160 which seems to work (216 usually works, but every so often seems to go beyond the timeout)
     # (if you want to test this, and get stuck in an infinite loop, simply powering off the receiver (not via nymea) should help)
 
     if browseResult.itemId == "":
