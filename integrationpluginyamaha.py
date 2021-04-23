@@ -52,6 +52,7 @@ playPoll = False
 # * turn on receiver when certain actions are executed? (e.g. play) -- power on seems to reset volume, so may not be OK to do this too much
 # * discovery of zones instead of auto
 # * add action play random to browse menu at server level
+# * improve html unescape for &amp; (and other characters?)
 
 def discoverThings(info):
     if info.thingClassId == receiverThingClassId:
@@ -430,7 +431,7 @@ def pollReceiver(info):
                     playStatus = "Stopped"
                     playPoll = False or playPoll
                 receiver.setStateValue(receiverPlaybackStatusStateTypeId, playStatus)
-                # Get meta info itemTxtClean = html.unescape(itemTxt)
+                # Get meta info
                 stringIndex1 = playerResponse.find("<Artist>")
                 stringIndex2 = playerResponse.find("</Artist>")
                 responseExtract = playerResponse[stringIndex1+8:stringIndex2]
@@ -927,7 +928,11 @@ def browseThing(browseResult):
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
         playRandomId = receiverRandomAlbumActionTypeId
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
-    maxItems = 1024 # needs to be multiple of 8 to work correctly with the browseResponse pages that contain 8 lines, so e.g. 512
+    maxItems = 216
+    # maxItems is used to truncate very long lists, as browsing them is very slow due to the nature of Yamaha's API``
+    # the value of maxItems needs to be a multiple of 8 to work correctly with the browseResponse pages that contain 8 lines,
+    # and it needs to be browsable within nymea's browseThing timeout, which appears to be around 250-300, so we take 264 to have some margin
+    # (if you want to test this, and get stuck in an infinite loop, simply powering off the receiver (not via nymea) should help)
 
     if browseResult.itemId == "":
         # go to first menu layer
@@ -948,18 +953,28 @@ def browseThing(browseResult):
         selectLine(rUrl, source, selItem)
     elif selType == "EL":
         # jump to first line of truncated part of list
-        gotoLine(rUrl, source, maxItems + 1)
+        gotoLine(rUrl, source, selItem)
 
     # browse menu level: keep going through menu pages (of 8 items per page) while last page hasn't been reached
     loop = True
     while loop == True:
         browseResponse, menuLayer = browseMenuReady(rUrl, source)
         currentLine, maxLine = getLineNbrs(browseResponse)
+        remainder = currentLine % maxItems
+        logger.log("selType", selType, "currentLine", currentLine, "remainder", remainder)
         # long lists (longer than maxItems) are truncated and can be extended with user action
-        if selType == "BI" and currentLine == (maxItems + 1):
+        if selType == "BI" and remainder == 1 and currentLine != 1:
+            # truncate list, and create browsable element that will allow user to continue browsing
             # create info about menu structure (BI = browsable item, EL = extend list in case long list was truncated)
             treeInfo = "EL-layer-" + str(menuLayer) + "-item-" + str(currentLine) + "-truncated"
-            browseResult.addItem(nymea.BrowserItem(treeInfo, "List truncated - click to show rest of list", "This action can be very slow", browsable=True, icon=nymea.BrowserIconFavorites))
+            browseResult.addItem(nymea.BrowserItem(treeInfo, "Continue", "Click to show the next part of this list", browsable=True, icon=nymea.BrowserIconFavorites))
+            # truncate results, stop loop
+            loop = False
+        elif selType == "EL" and remainder == 1 and currentLine != selItem:
+            # truncate list again, and create browsable element that will allow user to continue browsing
+            # create info about menu structure (BI = browsable item, EL = extend list in case long list was truncated)
+            treeInfo = "EL-layer-" + str(menuLayer) + "-item-" + str(currentLine) + "-truncated"
+            browseResult.addItem(nymea.BrowserItem(treeInfo, "Continue", "Click to show the next part of this list", browsable=True, icon=nymea.BrowserIconFavorites))
             # truncate results, stop loop
             loop = False
         else:
