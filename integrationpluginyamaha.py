@@ -4,7 +4,7 @@ import threading
 import json
 import requests
 import random
-import html
+from xml.sax.saxutils import unescape
 from zeroconf import IPVersion, ServiceBrowser, ServiceInfo, Zeroconf
 from typing import Callable, List
 
@@ -50,7 +50,6 @@ playPoll = False
 # to do:
 # * add discovery of devices on network using nymea framework
 # * add action play random to browse menu at server level
-# * improve html unescape for &amp; (and other characters?)
 
 def discoverThings(info):
     if info.thingClassId == receiverThingClassId:
@@ -448,15 +447,15 @@ def pollReceiver(info):
                 stringIndex1 = playerResponse.find("<Artist>")
                 stringIndex2 = playerResponse.find("</Artist>")
                 responseExtract = playerResponse[stringIndex1+8:stringIndex2]
-                receiver.setStateValue(receiverArtistStateTypeId, html.unescape(responseExtract))
+                receiver.setStateValue(receiverArtistStateTypeId, unescape(responseExtract, {"&amp;": "&", "&apos;": "'", "&quot;": '"'}))
                 stringIndex1 = playerResponse.find("<Album>")
                 stringIndex2 = playerResponse.find("</Album>")
                 responseExtract = playerResponse[stringIndex1+7:stringIndex2]
-                receiver.setStateValue(receiverCollectionStateTypeId, html.unescape(responseExtract))
+                receiver.setStateValue(receiverCollectionStateTypeId, unescape(responseExtract, {"&amp;": "&", "&apos;": "'", "&quot;": '"'}))
                 stringIndex1 = playerResponse.find("<Song>")
                 stringIndex2 = playerResponse.find("</Song>")
                 responseExtract = playerResponse[stringIndex1+6:stringIndex2]
-                receiver.setStateValue(receiverTitleStateTypeId, html.unescape(responseExtract))
+                receiver.setStateValue(receiverTitleStateTypeId, unescape(responseExtract, {"&amp;": "&", "&apos;": "'", "&quot;": '"'}))
                 stringIndex1 = playerResponse.find("<URL>")
                 stringIndex2 = playerResponse.find("</URL>")
                 responseExtract = playerResponse[stringIndex1+5:stringIndex2]
@@ -995,7 +994,7 @@ def browseThing(browseResult):
             # read the 8 lines in the current browseResponse page
             for i in range(1, 9):
                 itemTxt, itemAttr = readLine(browseResponse, i)
-                itemTxtClean = html.unescape(itemTxt)
+                itemTxtClean = unescape(itemTxt, {"&amp;": "&", "&apos;": "'", "&quot;": '"'})
                 # create info about menu structure (BI = browsable item, EL = extend list in case long list was truncated)
                 treeInfo = "BI-layer-" + str(menuLayer) + "-item-" + str(currentLine+i-1) + "-" + itemTxt
                 if itemAttr == "Container":
