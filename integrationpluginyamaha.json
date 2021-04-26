@@ -17,12 +17,6 @@
                     "browsable": true,
                     "paramTypes": [
                         {
-                            "id": "b77b3028-d67a-4f77-bd39-d3734319b89e",
-                            "name": "addZones",
-                            "displayName": "Add zones",
-                            "type" : "bool"
-                        },
-                        {
                             "id": "0129f3eb-3cc6-47fa-9366-74194ec655f9",
                             "name": "serial",
                             "displayName": "Serial Number",
@@ -334,6 +328,11 @@
                             "id": "ffceeb31-8b66-4d03-b664-57a3f9c9ec1a",
                             "name": "skipNext",
                             "displayName": "Skip next"
+                        },
+                        {
+                            "id": "1bf67116-8b85-40c2-8110-d34c3d7ffeee",
+                            "name": "addZones",
+                            "displayName": "Add zones"
                         }
                     ]
                 },
@@ -341,7 +340,7 @@
                     "id": "664ba198-a3e2-4380-83f3-adfb22a13130",
                     "name": "zone",
                     "displayName": "Yamaha AV Receiver Zone",
-                    "createMethods": ["auto"],
+                    "createMethods": ["discovery"],
                     "interfaces": ["mediaplayer", "mediacontroller", "volumecontroller", "mediametadataprovider", "connectable", "power"],
                     "browsable": true,
                     "paramTypes": [
