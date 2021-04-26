@@ -315,54 +315,6 @@ def setupThing(info):
         info.finish(nymea.ThingErrorNoError)
         return
 
-# def setupZones(receiver, response):
-#     pollResponse = response.text
-#     thingDescriptors = []
-#     discoveredZones = []
-#     possibleZones = list(("Zone_2", "Zone_3", "Zone_4"))
-                
-#     for zone in possibleZones:
-#         stringIndex1 = pollResponse.find("<" + zone + ">")
-#         stringIndex2 = pollResponse.find("</" + zone + ">")
-#         zoneFound = int(pollResponse[stringIndex1+8:stringIndex2])
-#         zoneNbr = int(zone[5:6])
-#         stringIndex1 = pollResponse.find("<System_ID>")
-#         stringIndex2 = pollResponse.find("</System_ID>")
-#         responseExtract = pollResponse[stringIndex1+11:stringIndex2]
-#         systemId = responseExtract
-#         if zoneFound == 1:
-#             logger.log("Additional zone with number %s found." % (str(zoneNbr)))
-#             # test if zone already exists
-#             exists = False
-#             for thing in myThings():
-#                 logger.log("Comparing to existing zones: is %s a zone?" % (thing.name))
-#                 if thing.thingClassId == zoneThingClassId:
-#                     logger.log("Yes, %s is a zone." % (thing.name))
-#                     if thing.paramValue(zoneThingSerialParamTypeId) == systemId and thing.paramValue(zoneThingZoneIdParamTypeId) == zoneNbr:
-#                         logger.log("Already have zone with number %s in the system" % (str(zoneNbr)))
-#                         exists = True
-#                     else:
-#                         logger.log("Thing %s doesn't match with found zone with number %s" % (thing.name, str(zoneNbr)))
-#                 elif thing.thingClassId == receiverThingClassId:
-#                     logger.log("Yes, %s is a main zone." % (thing.name))
-#                 else:
-#                      logger.log("No, %s is not a zone." % (thing.name))
-#             if exists == False: # Zone doesn't exist yet, so add it
-#                 discoveredZones.append(zone)
-#                 zoneName = receiver.name + " Zone " + str(zoneNbr)
-#                 logger.log("Found new additional zone:", zone, zoneNbr)
-#                 logger.log("Adding %s to the system with parent:" % (zoneName), receiver.name, receiver.id)
-#                 thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, parentId=receiver.id)
-#                 thingDescriptor.params = [
-#                     nymea.Param(zoneThingSerialParamTypeId, systemId),
-#                     nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
-#                 ]
-#                 thingDescriptors.append(thingDescriptor)
-
-#     # And let nymea know about all the receiver's zones
-#     autoThingsAppeared(thingDescriptors)
-#     logger.log("Discovered zones for receiver:", discoveredZones);
-
 def pollReceiver(info):
     global playPoll
     if info.thingClassId == zoneThingClassId:
