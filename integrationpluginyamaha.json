@@ -334,6 +334,13 @@
                             "name": "addZones",
                             "displayName": "Add zones"
                         }
+                    ],
+                    "browserItemActionTypes": [
+                        {
+                            "id": "24e8955e-4a51-411b-863d-aa70c2ab90ef",
+                            "name": "playRandom",
+                            "displayName": "Play random album"
+                        }
                     ]
                 },
                 {
@@ -569,6 +576,13 @@
                             "id": "e691da7c-ed1d-4b09-b60a-41a7fcd89e49",
                             "name": "skipNext",
                             "displayName": "Skip next"
+                        }
+                    ],
+                    "browserItemActionTypes": [
+                        {
+                            "id": "161ae3ac-efb1-460e-9564-c175bbf68861",
+                            "name": "playRandom",
+                            "displayName": "Play random album"
                         }
                     ]
                 }

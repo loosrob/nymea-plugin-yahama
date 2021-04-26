@@ -41,15 +41,12 @@ class ZeroconfListener(object):
         """Callback function when zeroconf service is discovered."""
         self._func(zeroconf.get_service_info(type, name))
 
-thingsAndReceivers = {}
+    def update_service(self, zeroconf: Zeroconf, type: str, name: str) -> None:
+        return
 
 pollTimer = None
 
 playPoll = False
-
-# to do:
-# * add discovery of devices on network using nymea framework
-# * add action play random to browse menu at server level
 
 def discoverThings(info):
     if info.thingClassId == receiverThingClassId:
@@ -934,11 +931,11 @@ def browseThing(browseResult):
                 parentReceiver = possibleParent
         deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(zoneInputSourceStateTypeId)
-        playRandomId = zoneRandomAlbumActionTypeId
+        playRandomId = zonePlayRandomBrowserItemActionTypeId
     elif zoneOrReceiver.thingClassId == receiverThingClassId:
         deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
-        playRandomId = receiverRandomAlbumActionTypeId
+        playRandomId = receiverPlayRandomBrowserItemActionTypeId
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
     maxItems = 128
     # maxItems is used to truncate very long lists, as browsing them is very slow due to the nature of Yamaha's API
@@ -998,9 +995,14 @@ def browseThing(browseResult):
                 # create info about menu structure (BI = browsable item, EL = extend list in case long list was truncated)
                 treeInfo = "BI-layer-" + str(menuLayer) + "-item-" + str(currentLine+i-1) + "-" + itemTxt
                 if itemAttr == "Container":
-                    browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, browsable=True, icon=nymea.BrowserIconFavorites))
+                    if source == "SERVER" and menuLayer == 1: # add browserItemAction play random album
+                        # change when nymea supports browserItemActions for python plugins:
+                        # browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, browsable=True, icon=nymea.BrowserIconFolder, browserItemActions=playRandomId))
+                        browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, browsable=True, icon=nymea.BrowserIconFolder))
+                    else:
+                        browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, browsable=True, icon=nymea.BrowserIconFolder))
                 elif itemAttr == "Item":
-                    browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, executable=True, icon=nymea.BrowserIconFavorites))
+                    browseResult.addItem(nymea.BrowserItem(treeInfo, itemTxtClean, executable=True, icon=nymea.BrowserIconMusic))
                 else:
                     # found unselectable item, indicating end of list, stop loop
                     if len(itemTxt) > 0:
@@ -1046,6 +1048,23 @@ def executeBrowserItem(info):
     info.finish(nymea.ThingErrorNoError)
     time.sleep(0.5)
     pollReceiver(zoneOrReceiver)
+    return
+
+def executeBrowserItemAction(info):
+    if info.actionTypeId == receiverPlayRandomBrowserItemActionTypeId or info.actionTypeId == zonePlayRandomBrowserItemActionTypeId:
+        if info.thing.thingClassId == zoneThingClassId:
+            # get parent receiver thing, needed to get deviceIp
+            for possibleParent in myThings():
+                if possibleParent.id == info.thing.parentId:
+                    parentReceiver = possibleParent
+            deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
+            zoneId = info.thing.paramValue(zoneThingZoneIdParamTypeId)
+            source = info.thing.stateValue(zoneInputSourceStateTypeId)
+        elif info.thing.thingClassId == receiverThingClassId:
+            deviceIp = info.thing.stateValue(receiverUrlStateTypeId)
+            source = info.thing.stateValue(receiverInputSourceStateTypeId)
+        rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
+        playRandomAlbum(rUrl, source)
     return
 
 def selectLine(rUrl, source, selItem):
