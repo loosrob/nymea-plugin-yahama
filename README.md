@@ -2,7 +2,8 @@
 
 This plugin allows to control your Yamaha (non-MusicCast) AV receivers.
 
-Each supported receiver on your local area network should appear automatically in the system.
+Each supported receiver on your local area network should be autodetected and can be added.
+After adding receivers, all additional zones for each known receiver can be shown and added.
 
 Browsing is supported, but can be slow due to the nature of the Yamaha API.
 As a nice extra, a random album on a random server can be started with a simple action. 
