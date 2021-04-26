@@ -329,7 +329,7 @@ def pollReceiver(info):
         bodyEnd = '</Zone_' + str(zoneId) + '></YAMAHA_AV>'
     elif info.thingClassId == receiverThingClassId:
         deviceIp = info.stateValue(receiverUrlStateTypeId)
-        logger.log("polling receiver", deviceIp, info.name + " Main Zone")
+        logger.log("polling receiver", deviceIp, info.name)
         bodyStart = '<YAMAHA_AV cmd="GET"><Main_Zone>'
         bodyEnd = '</Main_Zone></YAMAHA_AV>'
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
