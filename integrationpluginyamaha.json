@@ -48,6 +48,23 @@
                             "writable": true
                         },
                         {
+                            "displayName": "Sleep",
+                            "id": "8090c8ea-dea5-45d0-9592-092c50ee4235",
+                            "name": "sleep",
+                            "displayNameEvent": "Sleep timer changed",
+                            "displayNameAction": "Set sleep timer",
+                            "type": "QString",
+                            "writable": true,
+                            "possibleValues": [
+                                "Off",
+                                "30 min",
+                                "60 min",
+                                "90 min",
+                                "120 min"
+                            ],
+                            "defaultValue": "Off"
+                        },
+                        {
                             "displayName": "Mute",
                             "id": "f36a7bac-313e-4ab2-8816-4d9ce3684414",
                             "name": "mute",
@@ -67,40 +84,6 @@
                             "defaultValue": -500,
                             "minValue": -800,
                             "maxValue": -100,
-                            "writable": true
-                        },
-                        {
-                            "displayName": "Pure direct",
-                            "id": "d19ddece-6bf5-4c2d-9bbc-018b02d564df",
-                            "name": "pureDirect",
-                            "displayNameEvent": "Pure direct changed",
-                            "displayNameAction": "Set pure direct",
-                            "type": "bool",
-                            "defaultValue": false,
-                            "writable": true
-                        },
-                        {
-                            "displayName": "Bass",
-                            "id": "07b2c6ae-74c6-4cb2-b434-a25ad90fb7f9",
-                            "name": "bass",
-                            "displayNameEvent": "Bass changed",
-                            "displayNameAction": "Set bass",
-                            "type": "int",
-                            "defaultValue": 0,
-                            "minValue": -60,
-                            "maxValue": 60,
-                            "writable": true
-                        },
-                        {
-                            "displayName": "Treble",
-                            "id": "c06bce86-c1cb-42f0-9891-161a7f0849f5",
-                            "name": "treble",
-                            "displayNameEvent": "Treble changed",
-                            "displayNameAction": "Set treble",
-                            "type": "int",
-                            "defaultValue": 0,
-                            "minValue": -60,
-                            "maxValue": 60,
                             "writable": true
                         },
                         {
@@ -169,6 +152,52 @@
                             "defaultValue": "Standard"
                         },
                         {
+                            "displayName": "Bass",
+                            "id": "07b2c6ae-74c6-4cb2-b434-a25ad90fb7f9",
+                            "name": "bass",
+                            "displayNameEvent": "Bass changed",
+                            "displayNameAction": "Set bass",
+                            "type": "int",
+                            "defaultValue": 0,
+                            "minValue": -60,
+                            "maxValue": 60,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Treble",
+                            "id": "c06bce86-c1cb-42f0-9891-161a7f0849f5",
+                            "name": "treble",
+                            "displayNameEvent": "Treble changed",
+                            "displayNameAction": "Set treble",
+                            "type": "int",
+                            "defaultValue": 0,
+                            "minValue": -60,
+                            "maxValue": 60,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Subwoofer Trim",
+                            "id": "8b77db08-9a94-466c-8a57-b7cd8e638a80",
+                            "name": "subwooferTrim",
+                            "displayNameEvent": "Subwoofer trim changed",
+                            "displayNameAction": "Set subwoofer Trim",
+                            "type": "int",
+                            "defaultValue": 0,
+                            "minValue": -60,
+                            "maxValue": 60,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Pure direct",
+                            "id": "d19ddece-6bf5-4c2d-9bbc-018b02d564df",
+                            "name": "pureDirect",
+                            "displayNameEvent": "Pure direct changed",
+                            "displayNameAction": "Set pure direct",
+                            "type": "bool",
+                            "defaultValue": false,
+                            "writable": true
+                        },
+                        {
                             "displayName": "Enhancer",
                             "id": "ca7a4564-9f6d-4f07-8f63-445e44a0eb93",
                             "name": "enhancer",
@@ -176,6 +205,58 @@
                             "displayNameAction": "Set enhancer",
                             "type": "bool",
                             "defaultValue": false,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Cinema DSP 3D",
+                            "id": "8504e78f-924b-492f-8cc7-69290fb29c95",
+                            "name": "cinemaDSP3D",
+                            "displayNameEvent": "Cinema DSP 3D changed",
+                            "displayNameAction": "Set Cinema DSP 3D",
+                            "type": "QString",
+                            "writable": true,
+                            "possibleValues": [
+                                "Off",
+                                "Auto"
+                            ],
+                            "defaultValue": "Auto"
+                        },
+                        {
+                            "displayName": "Adaptive DRC",
+                            "id": "99057bc6-4d2a-4670-a1c7-02e9e869b86b",
+                            "name": "adaptiveDRC",
+                            "displayNameEvent": "Adaptive DRC changed",
+                            "displayNameAction": "Set Adaptive DRC",
+                            "type": "QString",
+                            "writable": true,
+                            "possibleValues": [
+                                "Off",
+                                "Auto"
+                            ],
+                            "defaultValue": "Auto"
+                        },
+                        {
+                            "displayName": "Dialogue level",
+                            "id": "042ed95f-d0f7-4eda-b469-a7863a639e84",
+                            "name": "dialogueLevel",
+                            "displayNameEvent": "Dialogue level changed",
+                            "displayNameAction": "Set dialogue level",
+                            "type": "int",
+                            "defaultValue": 0,
+                            "minValue": 0,
+                            "maxValue": 3,
+                            "writable": true
+                        },
+                        {
+                            "displayName": "Dialogue lift",
+                            "id": "3eff11b2-f6b0-4180-aadc-ef77fca633f4",
+                            "name": "dialogueLift",
+                            "displayNameEvent": "Dialogue lift changed",
+                            "displayNameAction": "Set dialogue lift",
+                            "type": "int",
+                            "defaultValue": 0,
+                            "minValue": 0,
+                            "maxValue": 5,
                             "writable": true
                         },
                         {
@@ -388,6 +469,23 @@
                             "type": "bool",
                             "defaultValue": false,
                             "writable": true
+                        },
+                        {
+                            "displayName": "Sleep",
+                            "id": "7ac5101f-96cd-40f4-a565-a15c266dafdb",
+                            "name": "sleep",
+                            "displayNameEvent": "Sleep timer changed",
+                            "displayNameAction": "Set sleep timer",
+                            "type": "QString",
+                            "writable": true,
+                            "possibleValues": [
+                                "Off",
+                                "30 min",
+                                "60 min",
+                                "90 min",
+                                "120 min"
+                            ],
+                            "defaultValue": "Off"
                         },
                         {
                             "displayName": "Mute",

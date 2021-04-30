@@ -347,6 +347,11 @@ def pollReceiver(info):
                 powerState = True
             else:
                 logger.log("Power state not found!")
+            # Get sleep state
+            stringIndex1 = pollResponse.find("<Sleep>")
+            stringIndex2 = pollResponse.find("</Sleep>")
+            responseExtract = pollResponse[stringIndex1+7:stringIndex2]
+            receiver.setStateValue(receiverSleepStateTypeId, responseExtract)
             # Get mute state
             if pollResponse.find("<Mute>Off</Mute>") != -1:
                 receiver.setStateValue(receiverMuteStateTypeId, False)
@@ -383,6 +388,16 @@ def pollReceiver(info):
             stringIndex2 = pollResponse.find("</Sound_Program>")
             responseExtract = pollResponse[stringIndex1+15:stringIndex2]
             receiver.setStateValue(receiverSurroundModeStateTypeId, responseExtract)
+            # Get Cinema DSP 3D state
+            stringIndex1 = pollResponse.find("<_3D_Cinema_DSP>")
+            stringIndex2 = pollResponse.find("</_3D_Cinema_DSP>")
+            responseExtract = pollResponse[stringIndex1+16:stringIndex2]
+            receiver.setStateValue(receiverCinemaDSP3DStateTypeId, responseExtract)
+            # Get Adaptive DRC state
+            stringIndex1 = pollResponse.find("<Adaptive_DRC>")
+            stringIndex2 = pollResponse.find("</Adaptive_DRC>")
+            responseExtract = pollResponse[stringIndex1+14:stringIndex2]
+            receiver.setStateValue(receiverAdaptiveDRCStateTypeId, responseExtract)
             # Get volume
             stringIndex1 = pollResponse.find("<Volume><Lvl><Val>")
             responseExtract = pollResponse[stringIndex1+18:stringIndex1+30]
@@ -404,6 +419,25 @@ def pollReceiver(info):
             responseExtract = responseExtract[0:stringIndex2]
             treble = int(responseExtract)
             receiver.setStateValue(receiverTrebleStateTypeId, treble)
+            # Get dialogue level
+            stringIndex1 = pollResponse.find("<Dialogue_Lvl>")
+            stringIndex2 = pollResponse.find("</Dialogue_Lvl>")
+            responseExtract = pollResponse[stringIndex1+14:stringIndex2]
+            dialogueLvl = int(responseExtract)
+            receiver.setStateValue(receiverDialogueLevelStateTypeId, dialogueLvl)
+            # Get dialogue lift
+            stringIndex1 = pollResponse.find("<Dialogue_Lift>")
+            stringIndex2 = pollResponse.find("</Dialogue_Lift>")
+            responseExtract = pollResponse[stringIndex1+15:stringIndex2]
+            dialogueLift = int(responseExtract)
+            receiver.setStateValue(receiverDialogueLiftStateTypeId, dialogueLift)
+            # Get subwoofer trim
+            stringIndex1 = pollResponse.find("<Subwoofer_Trim><Val>")
+            responseExtract = pollResponse[stringIndex1+21:stringIndex1+30]
+            stringIndex2 = responseExtract.find("</Val>")
+            responseExtract = responseExtract[0:stringIndex2]
+            subTrim = int(responseExtract)
+            receiver.setStateValue(receiverSubwooferTrimStateTypeId, subTrim)
             # Get player info
             body = '<YAMAHA_AV cmd="GET"><' + inputSource + '><Play_Info>GetParam</Play_Info></' + inputSource + '></YAMAHA_AV>'
             headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
@@ -469,7 +503,6 @@ def pollReceiver(info):
                 receiver.setStateValue(receiverArtworkStateTypeId, "")
         else:
             receiver.setStateValue(receiverConnectedStateTypeId, False)
-        # To do: add states: 3D Cinema DSP, Adaptive DRC, Dialogue Adjust, Dialogue Adjust Level
     elif info.thingClassId == zoneThingClassId:
         zone = info
         if pr.status_code == requests.codes.ok:
@@ -483,6 +516,11 @@ def pollReceiver(info):
                 powerState = True
             else:
                 logger.log("Power state not found!")
+            # Get sleep state
+            stringIndex1 = pollResponse.find("<Sleep>")
+            stringIndex2 = pollResponse.find("</Sleep>")
+            responseExtract = pollResponse[stringIndex1+7:stringIndex2]
+            zone.setStateValue(zoneSleepStateTypeId, responseExtract)
             # Get mute state
             if pollResponse.find("<Mute>Off</Mute>") != -1:
                 zone.setStateValue(zoneMuteStateTypeId, False)
@@ -729,6 +767,18 @@ def executeAction(info):
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
+    elif info.actionTypeId == receiverSleepActionTypeId or info.actionTypeId == zoneSleepActionTypeId:
+        if info.actionTypeId == receiverSleepActionTypeId:
+            sleepString = info.paramValue(receiverSleepActionSleepParamTypeId)
+        else:
+            sleepString = info.paramValue(zoneSleepActionSleepParamTypeId)
+        body = bodyStart + '<Power_Control><Sleep>' + sleepString + '</Sleep></Power_Control>' + bodyEnd
+        headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+        rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(0.5)
+        pollReceiver(info.thing)
+        info.finish(nymea.ThingErrorNoError)
+        return
     elif info.actionTypeId == receiverMuteActionTypeId or info.actionTypeId == zoneMuteActionTypeId:
         if info.actionTypeId == receiverMuteActionTypeId:
             mute = info.paramValue(receiverMuteActionMuteParamTypeId)
@@ -750,9 +800,25 @@ def executeAction(info):
             newVolume = info.paramValue(receiverVolumeStateTypeId)
         else:
             newVolume = info.paramValue(zoneVolumeStateTypeId)
+        # volume needs to be multiple of .5
+        remainder = newVolume % 5
+        newVolume -= remainder
         volumeString = str(newVolume)
         logger.log("Volume set to", newVolume)
         body = bodyStart + '<Volume><Lvl><Val>' + volumeString + '</Val><Exp>1</Exp><Unit>dB</Unit></Lvl></Volume>' + bodyEnd
+        pr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(0.5)
+        pollReceiver(info.thing)
+        info.finish(nymea.ThingErrorNoError)
+        return
+    elif info.actionTypeId == receiverSubwooferTrimActionTypeId:
+        newTrim = info.paramValue(receiverSubwooferTrimStateTypeId)
+        # trim needs to be multiple of .5
+        remainder = newTrim % 5
+        newTrim -= remainder
+        trimString = str(newTrim)
+        logger.log("Subwoofer trim set to", newTrim)
+        body = bodyStart + '<Volume><Subwoofer_Trim><Val>' + trimString + '</Val><Exp>1</Exp><Unit>dB</Unit></Subwoofer_Trim></Volume>' + bodyEnd
         pr = requests.post(rUrl, headers=headers, data=body)
         time.sleep(0.5)
         pollReceiver(info.thing)
@@ -782,19 +848,63 @@ def executeAction(info):
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
+    elif info.actionTypeId == receiverDialogueLevelActionTypeId:
+        diaLvl = info.paramValue(receiverDialogueLevelActionDialogueLevelParamTypeId)
+        diaStr = str(diaLvl)
+        body = bodyStart + '<Sound_Video><Dialogue_Adjust><Dialogue_Lvl>' + diaStr + '</Dialogue_Lvl></Dialogue_Adjust></Sound_Video>' + bodyEnd
+        rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(0.5)
+        pollReceiver(info.thing)
+        info.finish(nymea.ThingErrorNoError)
+        return
+    elif info.actionTypeId == receiverDialogueLiftActionTypeId:
+        diaLift = info.paramValue(receiverDialogueLiftActionDialogueLiftParamTypeId)
+        diaStr = str(diaLift)
+        body = bodyStart + '<Sound_Video><Dialogue_Adjust><Dialogue_Lift>' + diaStr + '</Dialogue_Lift></Dialogue_Adjust></Sound_Video>' + bodyEnd
+        rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(0.5)
+        pollReceiver(info.thing)
+        info.finish(nymea.ThingErrorNoError)
+        return
     elif info.actionTypeId == receiverBassActionTypeId:
-        bass = str(info.paramValue(receiverBassActionBassParamTypeId))
-        logger.log("Bass set to", bass)
-        body = bodyStart + '<Sound_Video><Tone><Bass><Val>' + bass + '</Val><Exp>1</Exp><Unit>dB</Unit></Bass></Tone></Sound_Video>' + bodyEnd
+        bass = info.paramValue(receiverBassActionBassParamTypeId)
+        # bass needs to be multiple of .5
+        remainder = bass % 5
+        bass -= remainder
+        bassStr = str(bass)
+        logger.log("Bass set to", bassStr)
+        body = bodyStart + '<Sound_Video><Tone><Bass><Val>' + bassStr + '</Val><Exp>1</Exp><Unit>dB</Unit></Bass></Tone></Sound_Video>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
         time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverTrebleActionTypeId:
-        treble = str(info.paramValue(receiverTrebleActionTrebleParamTypeId))
-        logger.log("Treble set to", treble)
-        body = bodyStart + '<Sound_Video><Tone><Treble><Val>' + treble + '</Val><Exp>1</Exp><Unit>dB</Unit></Treble></Tone></Sound_Video>' + bodyEnd
+        treble = info.paramValue(receiverTrebleActionTrebleParamTypeId)
+        # treble needs to be multiple of .5
+        remainder = treble % 5
+        treble -= remainder
+        trebleStr = str(treble)
+        logger.log("Treble set to", trebleStr)
+        body = bodyStart + '<Sound_Video><Tone><Treble><Val>' + trebleStr + '</Val><Exp>1</Exp><Unit>dB</Unit></Treble></Tone></Sound_Video>' + bodyEnd
+        rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(0.5)
+        pollReceiver(info.thing)
+        info.finish(nymea.ThingErrorNoError)
+        return
+    elif info.actionTypeId == receiverCinemaDSP3DActionTypeId:
+        dsp3D = info.paramValue(receiverCinemaDSP3DActionCinemaDSP3DParamTypeId)
+        logger.log("Cinema DSP 3D set to", dsp3D)
+        body = bodyStart + '<Surround><_3D_Cinema_DSP>' + dsp3D + '</_3D_Cinema_DSP></Surround>' + bodyEnd
+        rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(0.5)
+        pollReceiver(info.thing)
+        info.finish(nymea.ThingErrorNoError)
+        return
+    elif info.actionTypeId == receiverAdaptiveDRCActionTypeId:
+        adrc = info.paramValue(receiverAdaptiveDRCActionAdaptiveDRCParamTypeId)
+        logger.log("Adaptive DRC set to", adrc)
+        body = bodyStart + '<Sound_Video><Adaptive_DRC>' + adrc + '</Adaptive_DRC></Sound_Video>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
         time.sleep(0.5)
         pollReceiver(info.thing)
