@@ -1066,14 +1066,11 @@ def browseThing(browseResult):
                 parentReceiver = possibleParent
         deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(zoneInputSourceStateTypeId)
-        browseTree = parentReceiver.setting(receiverSettingsBrowsingShortcutParamTypeId)
-        logger.log("Browse shortcut", browseTree, "type", type(browseTree))
         playRandomId = zonePlayRandomBrowserItemActionTypeId
     elif zoneOrReceiver.thingClassId == receiverThingClassId:
+        parentReceiver = zoneOrReceiver
         deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
-        browseTree = zoneOrReceiver.setting(receiverSettingsBrowsingShortcutParamTypeId)
-        logger.log("Browse shortcut", browseTree, "type", type(browseTree))
         playRandomId = receiverPlayRandomBrowserItemActionTypeId
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
     maxItems = 128
@@ -1089,27 +1086,22 @@ def browseThing(browseResult):
         selLayer = 1
         selItem = 0
         selTxt = "Main menu"
-        if len(browseTree) > 0:
-            browseTree = browseTree.split("/")
-            logger.log("Browse shortcut split", browseTree)
-            selLayer = browseInTree(rUrl, source, browseTree)
-            browseResponse, menuLayer = browseMenuReady(rUrl, source)
-            if menuLayer == len(browseTree)+1 and menuLayer > 0:
-                # don't do anything unless browsing to the required menu item succeeded
-                logger.log("Browsing to required menu item succeeded")
-                selLayer = len(browseTree)+1
-                selItem = 0
-                selTxt = "Main menu"
-            else:
-                logger.log("Browsing to required menu item unsuccessful")
-                # go up to the selected menu level if needed
-                while menuLayer > selLayer:
-                    menuLevelUp(rUrl, source)
-                    browseResponse, menuLayer = browseMenuReady(rUrl, source)
-                selLayer = 1
-            selType = "BI"
-            selItem = 0
-            selTxt = "Main menu"
+        for i in range(1, 5):
+            if i == 1:
+                settingId = receiverSettingsBrowsingShortcut1ParamTypeId
+            elif i == 2:
+                settingId = receiverSettingsBrowsingShortcut2ParamTypeId
+            elif i == 3:
+                settingId = receiverSettingsBrowsingShortcut3ParamTypeId
+            elif i == 4:
+                settingId = receiverSettingsBrowsingShortcut4ParamTypeId
+            elif i == 5:
+                settingId = receiverSettingsBrowsingShortcut5ParamTypeId
+            browseTree = parentReceiver.setting(settingId)
+            if len(browseTree) > 0 and source == "SERVER": # shortcut is configured, and source needs to be server
+                scLayer = len(browseTree) + 1
+                treeInfo = "SC-layer-" + str(scLayer) + "-item-" + str(0) + "-" + browseTree
+                browseResult.addItem(nymea.BrowserItem(treeInfo, browseTree, "Shortcut", browsable=True, icon=nymea.BrowserIconFavorites))
     else:
         selType, selLayer, selItem, selTxt = splitBrowseItem(browseResult.itemId)
 
@@ -1124,6 +1116,27 @@ def browseThing(browseResult):
     elif selType == "EL":
         # jump to first line of truncated part of list
         gotoLine(rUrl, source, selItem)
+    elif selType == "SC":
+        # shortcut, browse shortcut tree
+        browseTree = selTxt.split("/")
+        selLayer = browseInTree(rUrl, source, browseTree)
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+        if menuLayer == len(browseTree)+1 and menuLayer > 0:
+            # don't do anything unless browsing to the required menu item succeeded
+            logger.log("Browsing to required menu item succeeded")
+            selLayer = len(browseTree)+1
+            selItem = 0
+            selTxt = "Main menu"
+        else:
+            logger.log("Browsing to required menu item unsuccessful")
+            # go up to the selected menu level if needed
+            while menuLayer > selLayer:
+                menuLevelUp(rUrl, source)
+                browseResponse, menuLayer = browseMenuReady(rUrl, source)
+            selLayer = 1
+        selType = "BI"
+        selItem = 0
+        selTxt = "Main menu"
 
     # browse menu level: keep going through menu pages (of 8 items per page) while last page hasn't been reached
     loop = True
@@ -1137,14 +1150,14 @@ def browseThing(browseResult):
             # truncate list, and create browsable element that will allow user to continue browsing
             # create info about menu structure (BI = browsable item, EL = extend list in case long list was truncated)
             treeInfo = "EL-layer-" + str(menuLayer) + "-item-" + str(currentLine) + "-truncated"
-            browseResult.addItem(nymea.BrowserItem(treeInfo, "Continue", "Click to show the next part of this list", browsable=True, icon=nymea.BrowserIconFavorites))
+            browseResult.addItem(nymea.BrowserItem(treeInfo, "Continue", "Click to show the next part of this list", browsable=True, icon=nymea.BrowserIconFolder))
             # truncate results, stop loop
             loop = False
         elif selType == "EL" and remainder == 1 and currentLine != selItem:
             # truncate list again, and create browsable element that will allow user to continue browsing
             # create info about menu structure (BI = browsable item, EL = extend list in case long list was truncated)
             treeInfo = "EL-layer-" + str(menuLayer) + "-item-" + str(currentLine) + "-truncated"
-            browseResult.addItem(nymea.BrowserItem(treeInfo, "Continue", "Click to show the next part of this list", browsable=True, icon=nymea.BrowserIconFavorites))
+            browseResult.addItem(nymea.BrowserItem(treeInfo, "Continue", "Click to show the next part of this list", browsable=True, icon=nymea.BrowserIconFolder))
             # truncate results, stop loop
             loop = False
         else:

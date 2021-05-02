@@ -27,8 +27,36 @@
                     "settingsTypes": [
                         {
                             "id": "e7a1e300-f3e9-4b56-a320-ed347409da9c",
-                            "name": "browsingShortcut",
-                            "displayName": "Browsing start folder (separate steps with slash)",
+                            "name": "browsingShortcut1",
+                            "displayName": "Browsing shortcut (see readme)",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "ca923c89-fdf9-4d3d-b1e7-947530450129",
+                            "name": "browsingShortcut2",
+                            "displayName": "Browsing shortcut 2",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "62747f24-f706-4f40-9a3a-28a444125e59",
+                            "name": "browsingShortcut3",
+                            "displayName": "Browsing shortcut 3",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "28549b0d-c006-47ca-b215-3a86b1ed5440",
+                            "name": "browsingShortcut4",
+                            "displayName": "Browsing shortcut 4",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "ab9e7218-5673-43e1-80a8-d35125dfa5a7",
+                            "name": "browsingShortcut5",
+                            "displayName": "Browsing shortcut 5",
                             "type": "QString",
                             "defaultValue": ""
                         }
