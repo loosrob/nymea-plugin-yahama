@@ -25,7 +25,13 @@
                         }
                     ],
                     "settingsTypes": [
-
+                        {
+                            "id": "e7a1e300-f3e9-4b56-a320-ed347409da9c",
+                            "name": "browsingShortcut",
+                            "displayName": "Browsing start folder (separate steps with slash)",
+                            "type": "QString",
+                            "defaultValue": ""
+                        }
                     ],
                     "stateTypes": [
                         {

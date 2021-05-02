@@ -398,7 +398,7 @@ def pollReceiver(info):
             stringIndex2 = pollResponse.find("</Adaptive_DRC>")
             responseExtract = pollResponse[stringIndex1+14:stringIndex2]
             receiver.setStateValue(receiverAdaptiveDRCStateTypeId, responseExtract)
-            # Get volume
+            # Get volume - volume is represented by int in Yamaha API, but shown as double = int/10 in Yamaha UI - this is ignored here as nymea wants volume to be an int
             stringIndex1 = pollResponse.find("<Volume><Lvl><Val>")
             responseExtract = pollResponse[stringIndex1+18:stringIndex1+30]
             stringIndex2 = responseExtract.find("</Val>")
@@ -487,6 +487,7 @@ def pollReceiver(info):
                 stringIndex2 = playerResponse.find("</Song>")
                 responseExtract = playerResponse[stringIndex1+6:stringIndex2]
                 receiver.setStateValue(receiverTitleStateTypeId, unescape(responseExtract, {"&amp;": "&", "&apos;": "'", "&quot;": '"'}))
+                # Get artwork --> Yamaha artwork file type isn't recognized by nymea: browse for external cover art?
                 stringIndex1 = playerResponse.find("<URL>")
                 stringIndex2 = playerResponse.find("</URL>")
                 responseExtract = playerResponse[stringIndex1+5:stringIndex2]
@@ -969,7 +970,10 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverRandomAlbumActionTypeId or info.actionTypeId == zoneRandomAlbumActionTypeId:
-        playRandomAlbum(rUrl, source)
+        body = bodyStart + '<Input><Input_Sel>SERVER</Input_Sel></Input>' + bodyEnd
+        rr = requests.post(rUrl, headers=headers, data=body)
+        time.sleep(0.5)
+        playRandomAlbum(rUrl, "SERVER")
         time.sleep(0.5)
         pollReceiver(info.thing)
         info.finish(nymea.ThingErrorNoError)
@@ -982,11 +986,24 @@ def playRandomAlbum(rUrl, source):
     # currently source needs to be SERVER
     # To do: add code to filter out unselectable items
     if source == "SERVER":
-        browseTree = ["Random", "Music", "By Album", "Random", "Play"]
+        browseTree = ["Random", "Music", "By Album", "Random"]
         logger.log("Playing random album on source " + source)
     else:
         browseTree = []
         logger.log("Source not supported for this action")
+    # navigate browseTree (first item select random server, then folder "Music", ...)
+    menuLayer = browseInTree(rUrl, source, browseTree)
+    # play album by selecting first line --> what if first line is not selectable? filter out non-selectable lines first?
+    if menuLayer == len(browseTree)+1 and menuLayer > 0:
+        # don't do anything unless browsing to the required menu item succeeded
+        selectLine(rUrl, source, 1)
+    return
+
+def browseInTree(rUrl, source, browseTree):
+    menuLayer = 1
+    if browseTree == None:
+        #create empty tree
+        browseTree = []
     # go up to the main menu level if needed
     if len(browseTree) > 0:
         selLayer = 1
@@ -994,19 +1011,26 @@ def playRandomAlbum(rUrl, source):
         while menuLayer > selLayer:
             menuLevelUp(rUrl, source)
             browseResponse, menuLayer = browseMenuReady(rUrl, source)
-    # navigate browseTree (first item select random server, then folder "Music", ...)
+    # navigate browseTree
     for i in range (0, len(browseTree)):
         if browseTree[i] == "Random":
-            browseResponse, menuLayer = browseMenuReady(rUrl, source)
+            #browseResponse, menuLayer = browseMenuReady(rUrl, source)
             currentLine, maxLine = getLineNbrs(browseResponse)
             selItem = random.randint(1, maxLine)
             selectLine(rUrl, source, selItem)
-        elif browseTree[i] == "Play":
-            selectLine(rUrl, source, 1)
         else:
             selItem = findLine(rUrl, source, browseTree[i])
-            selectLine(rUrl, source, selItem)
-    return
+            if selItem > 0:
+                selectLine(rUrl, source, selItem)
+            else:
+                logger.log("Requested item not found")
+        # set menuLayer in case of error in browsing?
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+        logger.log("Returning menuLayer", menuLayer)
+    if menuLayer < len(browseTree)+1:
+        logger.log("Attention, this isn't the requested menuLayer!")
+    return menuLayer
+
 
 def findLine(rUrl, source, searchTxt):
     # browse menu level: keep going through menu pages (of 8 items per page) until lineTxt is found
@@ -1032,6 +1056,7 @@ def findLine(rUrl, source, searchTxt):
 
 def browseThing(browseResult):
     # To do: check if receiver is on (or turn device on?)
+    # To do: limit browsing to sources that allow it?
     zoneOrReceiver = browseResult.thing
     pollReceiver(zoneOrReceiver)
     if zoneOrReceiver.thingClassId == zoneThingClassId:
@@ -1041,10 +1066,14 @@ def browseThing(browseResult):
                 parentReceiver = possibleParent
         deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(zoneInputSourceStateTypeId)
+        browseTree = parentReceiver.setting(receiverSettingsBrowsingShortcutParamTypeId)
+        logger.log("Browse shortcut", browseTree, "type", type(browseTree))
         playRandomId = zonePlayRandomBrowserItemActionTypeId
     elif zoneOrReceiver.thingClassId == receiverThingClassId:
         deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
+        browseTree = zoneOrReceiver.setting(receiverSettingsBrowsingShortcutParamTypeId)
+        logger.log("Browse shortcut", browseTree, "type", type(browseTree))
         playRandomId = receiverPlayRandomBrowserItemActionTypeId
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
     maxItems = 128
@@ -1060,6 +1089,27 @@ def browseThing(browseResult):
         selLayer = 1
         selItem = 0
         selTxt = "Main menu"
+        if len(browseTree) > 0:
+            browseTree = browseTree.split("/")
+            logger.log("Browse shortcut split", browseTree)
+            selLayer = browseInTree(rUrl, source, browseTree)
+            browseResponse, menuLayer = browseMenuReady(rUrl, source)
+            if menuLayer == len(browseTree)+1 and menuLayer > 0:
+                # don't do anything unless browsing to the required menu item succeeded
+                logger.log("Browsing to required menu item succeeded")
+                selLayer = len(browseTree)+1
+                selItem = 0
+                selTxt = "Main menu"
+            else:
+                logger.log("Browsing to required menu item unsuccessful")
+                # go up to the selected menu level if needed
+                while menuLayer > selLayer:
+                    menuLevelUp(rUrl, source)
+                    browseResponse, menuLayer = browseMenuReady(rUrl, source)
+                selLayer = 1
+            selType = "BI"
+            selItem = 0
+            selTxt = "Main menu"
     else:
         selType, selLayer, selItem, selTxt = splitBrowseItem(browseResult.itemId)
 
@@ -1267,6 +1317,10 @@ def browseMenuReady(rUrl, source):
             stringIndex1 = browseResponse.find("<Menu_Layer>")
             stringIndex2 = browseResponse.find("</Menu_Layer>")
             menuLayer = int(browseResponse[stringIndex1+12:stringIndex2])
+            stringIndex1 = browseResponse.find("<Menu_Name>")
+            stringIndex2 = browseResponse.find("</Menu_Name>")
+            menuTitle = browseResponse[stringIndex1+11:stringIndex2]
+            logger.log("Menu layer", menuLayer, "Menu title", menuTitle)
         else:
             time.sleep(0.1)
     return browseResponse, menuLayer
