@@ -14,6 +14,10 @@ As a nice extra, a random album on a random server can be started with a simple 
 * Other non-MusicCast Yamaha RX-V devices should also work, but haven't been tested
 * Newer Yamaha MusicCast devices aren't supported, as they use a different API
 
+## Manual
+
+* Volumes (and some other variables) are represented by integer in the Yamaha API, but shown as double = int/10 in Yamaha UI, so e.g. API will show -455, but receiver will show -45.5 dB. As the Nymea media interface currently needs volume to be an integer, the plugin will show volume as integer, so e.g. -455 instead of -45.5 dB
+
 ## Requirements
 
 * nymea and the Yamaha device must be in the same local area network.
