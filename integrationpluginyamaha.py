@@ -642,15 +642,22 @@ def executeAction(info):
         bodyStart = '<YAMAHA_AV cmd="PUT"><Zone_' + str(zoneId) + '>'
         bodyEnd = '</Zone_' + str(zoneId) + '></YAMAHA_AV>'
         source = info.thing.stateValue(zoneInputSourceStateTypeId)
+        powerCheck = info.thing.stateValue(zonePowerStateTypeId)
     elif info.thing.thingClassId == receiverThingClassId:
         deviceIp = info.thing.stateValue(receiverUrlStateTypeId)
         bodyStart = '<YAMAHA_AV cmd="PUT"><Main_Zone>'
         bodyEnd = '</Main_Zone></YAMAHA_AV>'
         source = info.thing.stateValue(receiverInputSourceStateTypeId)
+        powerCheck = info.thing.stateValue(receiverPowerStateTypeId)
 
     logger.log("executeAction called for thing", info.thing.name, deviceIp, source, info.actionTypeId, info.params)
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
     headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
+
+    # turn receiver/zone on if needed, before executing the action
+    if powerCheck == False:
+        body = bodyStart + '<Power_Control><Power>On</Power></Power_Control>' + bodyEnd
+        rr = requests.post(rUrl, headers=headers, data=body)
 
     if info.actionTypeId == receiverIncreaseVolumeActionTypeId or info.actionTypeId == zoneIncreaseVolumeActionTypeId:
         if info.actionTypeId == receiverIncreaseVolumeActionTypeId:
@@ -762,7 +769,6 @@ def executeAction(info):
         else:
             powerString = "Standby"
         body = bodyStart + '<Power_Control><Power>' + powerString + '</Power></Power_Control>' + bodyEnd
-        headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
         rr = requests.post(rUrl, headers=headers, data=body)
         time.sleep(0.5)
         pollReceiver(info.thing)
@@ -774,7 +780,6 @@ def executeAction(info):
         else:
             sleepString = info.paramValue(zoneSleepActionSleepParamTypeId)
         body = bodyStart + '<Power_Control><Sleep>' + sleepString + '</Sleep></Power_Control>' + bodyEnd
-        headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
         rr = requests.post(rUrl, headers=headers, data=body)
         time.sleep(0.5)
         pollReceiver(info.thing)
@@ -790,7 +795,6 @@ def executeAction(info):
         else:
             muteString = "Off"
         body = bodyStart + '<Volume><Mute>' + muteString + '</Mute></Volume>' + bodyEnd
-        headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
         rr = requests.post(rUrl, headers=headers, data=body)
         time.sleep(0.5)
         pollReceiver(info.thing)
@@ -798,9 +802,9 @@ def executeAction(info):
         return
     elif info.actionTypeId == receiverVolumeActionTypeId or info.actionTypeId == zoneVolumeActionTypeId:
         if info.actionTypeId == receiverVolumeActionTypeId:
-            newVolume = info.paramValue(receiverVolumeStateTypeId)
+            newVolume = info.paramValue(receiverVolumeActionVolumeParamTypeId)
         else:
-            newVolume = info.paramValue(zoneVolumeStateTypeId)
+            newVolume = info.paramValue(zoneVolumeActionVolumeParamTypeId)
         # volume needs to be multiple of .5
         remainder = newVolume % 5
         newVolume -= remainder
@@ -813,7 +817,7 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverSubwooferTrimActionTypeId:
-        newTrim = info.paramValue(receiverSubwooferTrimStateTypeId)
+        newTrim = info.paramValue(receiverSubwooferTrimActionSubwooferTrimParamTypeId)
         # trim needs to be multiple of .5
         remainder = newTrim % 5
         newTrim -= remainder
@@ -912,7 +916,6 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverInputSourceActionTypeId or info.actionTypeId == zoneInputSourceActionTypeId:
-        # power on device first, so action will work when device is off when action is initiated?
         if info.actionTypeId == receiverInputSourceActionTypeId:
             inputSource = info.paramValue(receiverInputSourceActionInputSourceParamTypeId)
         else:
@@ -1065,20 +1068,32 @@ def browseThing(browseResult):
             if possibleParent.id == zoneOrReceiver.parentId:
                 parentReceiver = possibleParent
         deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
+        bodyStart = '<YAMAHA_AV cmd="PUT"><Zone_' + str(zoneId) + '>'
+        bodyEnd = '</Zone_' + str(zoneId) + '></YAMAHA_AV>'
         source = zoneOrReceiver.stateValue(zoneInputSourceStateTypeId)
         playRandomId = zonePlayRandomBrowserItemActionTypeId
+        powerCheck = zoneOrReceiver.stateValue(zonePowerStateTypeId)
     elif zoneOrReceiver.thingClassId == receiverThingClassId:
         parentReceiver = zoneOrReceiver
         deviceIp = zoneOrReceiver.stateValue(receiverUrlStateTypeId)
+        bodyStart = '<YAMAHA_AV cmd="PUT"><Main_Zone>'
+        bodyEnd = '</Main_Zone></YAMAHA_AV>'
         source = zoneOrReceiver.stateValue(receiverInputSourceStateTypeId)
         playRandomId = receiverPlayRandomBrowserItemActionTypeId
+        powerCheck = zoneOrReceiver.stateValue(receiverPowerStateTypeId)
     rUrl = 'http://' + deviceIp + ':80/YamahaRemoteControl/ctrl'
+    headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
     maxItems = 128
     # maxItems is used to truncate very long lists, as browsing them is very slow due to the nature of Yamaha's API
     # the value of maxItems needs to be a multiple of 8 to work correctly with the browseResponse pages that contain 8 lines
     # and it needs to be browsable within nymea's browseThing timeout, which would be around 264-304
     # but it also seems quite easy to overload the device by making to many API calls, so we limit to 128
     # (if you want to test this and get stuck, powering off the receiver (not via nymea) should help)
+
+    # turn receiver/zone on if needed, before executing the action
+    if powerCheck == False:
+        body = bodyStart + '<Power_Control><Power>On</Power></Power_Control>' + bodyEnd
+        rr = requests.post(rUrl, headers=headers, data=body)
 
     if browseResult.itemId == "":
         # go to first menu layer
