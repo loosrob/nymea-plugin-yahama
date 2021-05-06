@@ -655,7 +655,7 @@ def executeAction(info):
     headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
 
     # turn receiver/zone on if needed, before executing the action
-    if powerCheck == False:
+    if powerCheck == False and info.actionTypeId != receiverPowerActionTypeId and info.actionTypeId != zonePowerActionTypeId:
         body = bodyStart + '<Power_Control><Power>On</Power></Power_Control>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)
 
@@ -1034,7 +1034,6 @@ def browseInTree(rUrl, source, browseTree):
         logger.log("Attention, this isn't the requested menuLayer!")
     return menuLayer
 
-
 def findLine(rUrl, source, searchTxt):
     # browse menu level: keep going through menu pages (of 8 items per page) until lineTxt is found
     loop = True
@@ -1058,7 +1057,7 @@ def findLine(rUrl, source, searchTxt):
     return selItem
 
 def browseThing(browseResult):
-    # To do: check if receiver is on (or turn device on?)
+    # To do: add browse menu action "create shortcut here" as soon as nymea allows browse menu actions?
     # To do: limit browsing to sources that allow it?
     zoneOrReceiver = browseResult.thing
     pollReceiver(zoneOrReceiver)
@@ -1208,7 +1207,6 @@ def browseThing(browseResult):
     return
 
 def executeBrowserItem(info):
-    # To do: check if receiver is on (or turn device on?)
     zoneOrReceiver = info.thing
     pollReceiver(zoneOrReceiver)
     if zoneOrReceiver.thingClassId == zoneThingClassId:
