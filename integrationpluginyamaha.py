@@ -44,6 +44,9 @@ class ZeroconfListener(object):
     def update_service(self, zeroconf: Zeroconf, type: str, name: str) -> None:
         return
 
+    def remove_service(self, zeroconf: Zeroconf, type: str, name: str) -> None:
+        return
+
 pollTimer = None
 
 playPoll = False
@@ -132,8 +135,9 @@ def discoverThings(info):
                         for possibleZone in myThings():
                             logger.log("Comparing to existing zones: is %s a zone?" % (possibleZone.name))
                             if possibleZone.thingClassId == zoneThingClassId:
+                                zone = possibleZone
                                 logger.log("Yes, %s is a zone." % (possibleZone.name))
-                                if possibleZone.paramValue(zoneThingSerialParamTypeId) == systemId and possibleZone.paramValue(zoneThingZoneIdParamTypeId) == zoneNbr:
+                                if zone.paramValue(zoneThingSerialParamTypeId) == systemId and zone.paramValue(zoneThingZoneIdParamTypeId) == zoneNbr:
                                     logger.log("Already have zone with number %s in the system" % (str(zoneNbr)))
                                     exists = True
                                 else:
@@ -142,24 +146,24 @@ def discoverThings(info):
                                 logger.log("Yes, %s is a main zone." % (possibleZone.name))
                             else:
                                 logger.log("No, %s is not a zone." % (possibleZone.name))
-                            if exists == False: # Zone doesn't exist yet, so add it
-                                zoneName = receiver.name + " Zone " + str(zoneNbr)
-                                logger.log("Found new additional zone:", zone, zoneNbr)
-                                logger.log("Adding %s to the system with parent:" % (zoneName), receiver.name, receiver.id)
-                                thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, parentId=receiver.id)
-                                thingDescriptor.params = [
-                                    nymea.Param(zoneThingSerialParamTypeId, systemId),
-                                    nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
-                                ]
-                                info.addDescriptor(thingDescriptor)
-                            else: # Zone already exists, so show it to allow reconfiguration
-                                zoneName = receiver.name + " Zone " + str(zoneNbr)
-                                thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, thingId=possibleZone.id, parentId=receiver.id)
-                                thingDescriptor.params = [
-                                    nymea.Param(zoneThingSerialParamTypeId, systemId),
-                                    nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
-                                ]
-                                info.addDescriptor(thingDescriptor)
+                        if exists == False: # Zone doesn't exist yet, so add it
+                            zoneName = receiver.name + " Zone " + str(zoneNbr)
+                            logger.log("Found new additional zone:", zone, zoneNbr)
+                            logger.log("Adding %s to the system with parent:" % (zoneName), receiver.name, receiver.id)
+                            thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, parentId=receiver.id)
+                            thingDescriptor.params = [
+                                nymea.Param(zoneThingSerialParamTypeId, systemId),
+                                nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
+                            ]
+                            info.addDescriptor(thingDescriptor)
+                        else: # Zone already exists, so show it to allow reconfiguration
+                            zoneName = receiver.name + " Zone " + str(zoneNbr)
+                            thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, thingId=zone.id, parentId=receiver.id)
+                            thingDescriptor.params = [
+                                nymea.Param(zoneThingSerialParamTypeId, systemId),
+                                nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
+                            ]
+                            info.addDescriptor(thingDescriptor)
         info.finish(nymea.ThingErrorNoError)
         return
 
