@@ -281,7 +281,7 @@ def setupThing(info):
         # If no poll timer is set up yet, start it now
         logger.log("Creating polltimer")
         global pollTimer
-        pollTimer = threading.Timer(20, pollService)
+        pollTimer = threading.Timer(40, pollService)
         pollTimer.start()
         
         info.finish(nymea.ThingErrorNoError)
@@ -625,9 +625,9 @@ def pollService():
     # restart the timer for next poll (if player is playing, increase poll frequency)
     global pollTimer
     if playPoll == True:
-        pollTimer = threading.Timer(10, pollService)
+        pollTimer = threading.Timer(15, pollService)
     else:
-        pollTimer = threading.Timer(30, pollService)
+        pollTimer = threading.Timer(40, pollService)
     pollTimer.start()
 
 def executeAction(info):
@@ -1066,6 +1066,7 @@ def browseThing(browseResult):
         for possibleParent in myThings():
             if possibleParent.id == zoneOrReceiver.parentId:
                 parentReceiver = possibleParent
+        zoneId = zoneOrReceiver.paramValue(zoneThingZoneIdParamTypeId)
         deviceIp = parentReceiver.stateValue(receiverUrlStateTypeId)
         bodyStart = '<YAMAHA_AV cmd="PUT"><Zone_' + str(zoneId) + '>'
         bodyEnd = '</Zone_' + str(zoneId) + '></YAMAHA_AV>'
@@ -1089,7 +1090,7 @@ def browseThing(browseResult):
     # but it also seems quite easy to overload the device by making to many API calls, so we limit to 128
     # (if you want to test this and get stuck, powering off the receiver (not via nymea) should help)
 
-    # turn receiver/zone on if needed, before executing the action
+    # turn receiver/zone on if needed, before browsing
     if powerCheck == False:
         body = bodyStart + '<Power_Control><Power>On</Power></Power_Control>' + bodyEnd
         rr = requests.post(rUrl, headers=headers, data=body)

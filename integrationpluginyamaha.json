@@ -443,11 +443,6 @@
                             "id": "ffceeb31-8b66-4d03-b664-57a3f9c9ec1a",
                             "name": "skipNext",
                             "displayName": "Skip next"
-                        },
-                        {
-                            "id": "1bf67116-8b85-40c2-8110-d34c3d7ffeee",
-                            "name": "addZones",
-                            "displayName": "Add zones"
                         }
                     ],
                     "browserItemActionTypes": [
