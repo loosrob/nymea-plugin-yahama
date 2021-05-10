@@ -102,7 +102,7 @@ def discoverThings(info):
 
     if info.thingClassId == zoneThingClassId:
         logger.log("Discovery started for", info.thingClassId)
-        thingDescriptors = []
+        #thingDescriptors = []
         
         for possibleReceiver in myThings():
             logger.log("Looking for existing receivers to add zones: is %s a receiver?" % (possibleReceiver.name))
@@ -115,9 +115,6 @@ def discoverThings(info):
                 headers = {'Content-Type': 'text/xml', 'Accept': '*/*'}
                 rr = requests.post(rUrl, headers=headers, data=body)
                 pollResponse = rr.text
-
-                # thingDescriptors = []
-                # discoveredZones = []
                 possibleZones = list(("Zone_2", "Zone_3", "Zone_4"))
                             
                 for zone in possibleZones:
@@ -127,8 +124,7 @@ def discoverThings(info):
                     zoneNbr = int(zone[5:6])
                     stringIndex1 = pollResponse.find("<System_ID>")
                     stringIndex2 = pollResponse.find("</System_ID>")
-                    responseExtract = pollResponse[stringIndex1+11:stringIndex2]
-                    systemId = responseExtract
+                    systemId = pollResponse[stringIndex1+11:stringIndex2]
                     if zoneFound == 1:
                         logger.log("Additional zone with number %s found." % (str(zoneNbr)))
                         # test if zone already exists
@@ -146,24 +142,24 @@ def discoverThings(info):
                                 logger.log("Yes, %s is a main zone." % (possibleZone.name))
                             else:
                                 logger.log("No, %s is not a zone." % (possibleZone.name))
-                        if exists == False: # Zone doesn't exist yet, so add it
-                            #discoveredZones.append(zone)
-                            zoneName = receiver.name + " Zone " + str(zoneNbr)
-                            logger.log("Found new additional zone:", zone, zoneNbr)
-                            logger.log("Adding %s to the system with parent:" % (zoneName), receiver.name, receiver.id)
-                            thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, parentId=receiver.id)
-                            thingDescriptor.params = [
-                                nymea.Param(zoneThingSerialParamTypeId, systemId),
-                                nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
-                            ]
-                            info.addDescriptor(thingDescriptor)
-                        else: # Zone already exists, so show it to allow reconfiguration
-                            thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, thingId=thing.id, parentId=receiver.id)
-                            thingDescriptor.params = [
-                                nymea.Param(zoneThingSerialParamTypeId, systemId),
-                                nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
-                            ]
-                            info.addDescriptor(thingDescriptor)
+                            if exists == False: # Zone doesn't exist yet, so add it
+                                zoneName = receiver.name + " Zone " + str(zoneNbr)
+                                logger.log("Found new additional zone:", zone, zoneNbr)
+                                logger.log("Adding %s to the system with parent:" % (zoneName), receiver.name, receiver.id)
+                                thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, parentId=receiver.id)
+                                thingDescriptor.params = [
+                                    nymea.Param(zoneThingSerialParamTypeId, systemId),
+                                    nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
+                                ]
+                                info.addDescriptor(thingDescriptor)
+                            else: # Zone already exists, so show it to allow reconfiguration
+                                zoneName = receiver.name + " Zone " + str(zoneNbr)
+                                thingDescriptor = nymea.ThingDescriptor(zoneThingClassId, zoneName, thingId=possibleZone.id, parentId=receiver.id)
+                                thingDescriptor.params = [
+                                    nymea.Param(zoneThingSerialParamTypeId, systemId),
+                                    nymea.Param(zoneThingZoneIdParamTypeId, zoneNbr)
+                                ]
+                                info.addDescriptor(thingDescriptor)
         info.finish(nymea.ThingErrorNoError)
         return
 
