@@ -105,7 +105,6 @@ def discoverThings(info):
 
     if info.thingClassId == zoneThingClassId:
         logger.log("Discovery started for", info.thingClassId)
-        #thingDescriptors = []
         
         for possibleReceiver in myThings():
             logger.log("Looking for existing receivers to add zones: is %s a receiver?" % (possibleReceiver.name))
@@ -243,7 +242,6 @@ def setupThing(info):
 
         discoveredIps = findIps()
         found = False
-        #info.thing.setStateValue(receiverUrlStateTypeId, "0.0.0.0")
         
         for i in range(0, len(discoveredIps)):
             deviceIp = discoveredIps[i]
@@ -729,7 +727,6 @@ def executeAction(info):
         info.finish(nymea.ThingErrorNoError)
         return
     elif info.actionTypeId == receiverPlayActionTypeId or info.actionTypeId == zonePlayActionTypeId:
-        # power on device first, so action will work when device is off when action is initiated?
         body = '<YAMAHA_AV cmd="PUT"><' + source + '><Play_Control><Playback>Play</Playback></Play_Control></' + source + '></YAMAHA_AV>'
         rr = requests.post(rUrl, headers=headers, data=body)
         time.sleep(0.5)
@@ -805,7 +802,7 @@ def executeAction(info):
             newVolume = info.paramValue(receiverVolumeActionVolumeParamTypeId)
         else:
             newVolume = info.paramValue(zoneVolumeActionVolumeParamTypeId)
-        # volume needs to be multiple of .5
+        # volume needs to be multiple of 5
         remainder = newVolume % 5
         newVolume -= remainder
         volumeString = str(newVolume)
@@ -818,7 +815,7 @@ def executeAction(info):
         return
     elif info.actionTypeId == receiverSubwooferTrimActionTypeId:
         newTrim = info.paramValue(receiverSubwooferTrimActionSubwooferTrimParamTypeId)
-        # trim needs to be multiple of .5
+        # trim needs to be multiple of 5
         remainder = newTrim % 5
         newTrim -= remainder
         trimString = str(newTrim)
@@ -873,7 +870,7 @@ def executeAction(info):
         return
     elif info.actionTypeId == receiverBassActionTypeId:
         bass = info.paramValue(receiverBassActionBassParamTypeId)
-        # bass needs to be multiple of .5
+        # bass needs to be multiple of 5
         remainder = bass % 5
         bass -= remainder
         bassStr = str(bass)
@@ -886,7 +883,7 @@ def executeAction(info):
         return
     elif info.actionTypeId == receiverTrebleActionTypeId:
         treble = info.paramValue(receiverTrebleActionTrebleParamTypeId)
-        # treble needs to be multiple of .5
+        # treble needs to be multiple of 5
         remainder = treble % 5
         treble -= remainder
         trebleStr = str(treble)
