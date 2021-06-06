@@ -28,7 +28,14 @@
                         {
                             "id": "e7a1e300-f3e9-4b56-a320-ed347409da9c",
                             "name": "browsingShortcut1",
-                            "displayName": "Browsing shortcut (see readme)",
+                            "displayName": "Browsing shortcut 1 (see readme)",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "98fea0de-82a5-40af-bd98-35099555c639",
+                            "name": "shortcutLabel1",
+                            "displayName": "Shortcut 1 label",
                             "type": "QString",
                             "defaultValue": ""
                         },
@@ -40,9 +47,23 @@
                             "defaultValue": ""
                         },
                         {
+                            "id": "2aa92119-8a84-4ad0-8115-3e040ce1b54a",
+                            "name": "shortcutLabel2",
+                            "displayName": "Shortcut 2 label",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
                             "id": "62747f24-f706-4f40-9a3a-28a444125e59",
                             "name": "browsingShortcut3",
                             "displayName": "Browsing shortcut 3",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "bdc440e9-8340-406f-9c86-32fd3795031a",
+                            "name": "shortcutLabel3",
+                            "displayName": "Shortcut 3 label",
                             "type": "QString",
                             "defaultValue": ""
                         },
@@ -54,9 +75,23 @@
                             "defaultValue": ""
                         },
                         {
+                            "id": "e35d5f98-3ea6-488c-af41-a1b7635f1cb3",
+                            "name": "shortcutLabel4",
+                            "displayName": "Shortcut 4 label",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
                             "id": "ab9e7218-5673-43e1-80a8-d35125dfa5a7",
                             "name": "browsingShortcut5",
                             "displayName": "Browsing shortcut 5",
+                            "type": "QString",
+                            "defaultValue": ""
+                        },
+                        {
+                            "id": "15793b6f-e2f6-47c4-96f7-494eac77a61e",
+                            "name": "shortcutLabel5",
+                            "displayName": "Shortcut 5 label",
                             "type": "QString",
                             "defaultValue": ""
                         }

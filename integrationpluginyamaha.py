@@ -1098,22 +1098,29 @@ def browseThing(browseResult):
         selLayer = 1
         selItem = 0
         selTxt = "Main menu"
-        for i in range(1, 5):
+        for i in range(1, 6):
             if i == 1:
-                settingId = receiverSettingsBrowsingShortcut1ParamTypeId
+                shortcutId = receiverSettingsBrowsingShortcut1ParamTypeId
+                labelId = receiverSettingsShortcutLabel1ParamTypeId
             elif i == 2:
-                settingId = receiverSettingsBrowsingShortcut2ParamTypeId
+                shortcutId = receiverSettingsBrowsingShortcut2ParamTypeId
+                labelId = receiverSettingsShortcutLabel2ParamTypeId
             elif i == 3:
-                settingId = receiverSettingsBrowsingShortcut3ParamTypeId
+                shortcutId = receiverSettingsBrowsingShortcut3ParamTypeId
+                labelId = receiverSettingsShortcutLabel3ParamTypeId
             elif i == 4:
-                settingId = receiverSettingsBrowsingShortcut4ParamTypeId
+                shortcutId = receiverSettingsBrowsingShortcut4ParamTypeId
+                labelId = receiverSettingsShortcutLabel4ParamTypeId
             elif i == 5:
-                settingId = receiverSettingsBrowsingShortcut5ParamTypeId
-            browseTree = parentReceiver.setting(settingId)
+                shortcutId = receiverSettingsBrowsingShortcut5ParamTypeId
+                labelId = receiverSettingsShortcutLabel5ParamTypeId
+            browseTree = parentReceiver.setting(shortcutId)
+            labelTxt = parentReceiver.setting(labelId)
             if len(browseTree) > 0 and source == "SERVER": # shortcut is configured, and source needs to be server
                 scLayer = len(browseTree) + 1
+                subTxt = "Shortcut to " + browseTree
                 treeInfo = "SC-layer-" + str(scLayer) + "-item-" + str(0) + "-" + browseTree
-                browseResult.addItem(nymea.BrowserItem(treeInfo, browseTree, "Shortcut", browsable=True, icon=nymea.BrowserIconFavorites))
+                browseResult.addItem(nymea.BrowserItem(treeInfo, labelTxt, subTxt, browsable=True, icon=nymea.BrowserIconFavorites))
     else:
         selType, selLayer, selItem, selTxt = splitBrowseItem(browseResult.itemId)
 
