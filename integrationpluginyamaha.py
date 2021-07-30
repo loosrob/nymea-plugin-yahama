@@ -277,10 +277,14 @@ def setupThing(info):
         logger.log("Receiver added:", info.thing.name)
 
         # If no poll timer is set up yet, start it now
-        logger.log("Creating polltimer")
+        logger.log("Creating pollService")
         global pollTimer
-        pollTimer = threading.Timer(40, pollService)
-        pollTimer.start()
+        if pollTimer == None:
+            logger.log("Starting timer @ setupThing")
+            pollTimer = threading.Timer(30, pollService)
+            pollTimer.start()
+        else:
+            logger.log("Timer already exists @ setupThing")
         
         info.finish(nymea.ThingErrorNoError)
         return
@@ -612,21 +616,22 @@ def pollReceiver(info):
 
 def pollService():
     logger.log("pollService!!!")
+    global pollTimer
     global playPoll
+    # restart the timer for next poll (if player was playing at previous poll, increase poll frequency)
+    # we start the timer before polling the receivers to test if this avoids the timer not restarting due to request errors in pollReceiver
+    if playPoll == True:
+        interval = 10
+    else:
+        interval = 30    
+    logger.log("Restarting timer @ pollService")
+    pollTimer = threading.Timer(interval, pollService)
+    pollTimer.start()
     playPoll = False
     # Poll all receivers we know
     for thing in myThings():
-        if thing.thingClassId == receiverThingClassId:
+        if thing.thingClassId == receiverThingClassId or thing.thingClassId == zoneThingClassId:
             pollReceiver(thing)
-        if thing.thingClassId == zoneThingClassId:
-            pollReceiver(thing)
-    # restart the timer for next poll (if player is playing, increase poll frequency)
-    global pollTimer
-    if playPoll == True:
-        pollTimer = threading.Timer(15, pollService)
-    else:
-        pollTimer = threading.Timer(40, pollService)
-    pollTimer.start()
 
 def executeAction(info):
     pollReceiver(info.thing)
@@ -1087,10 +1092,18 @@ def browseThing(browseResult):
     # but it also seems quite easy to overload the device by making to many API calls, so we limit to 128
     # (if you want to test this and get stuck, powering off the receiver (not via nymea) should help)
 
-    # turn receiver/zone on if needed, before browsing
-    if powerCheck == False:
-        body = bodyStart + '<Power_Control><Power>On</Power></Power_Control>' + bodyEnd
-        rr = requests.post(rUrl, headers=headers, data=body)
+    browsableSources = ["SERVER", "USB"]
+    if source in browsableSources:
+        logger.log("Source %s is browsable" % (source))
+        # turn receiver/zone on if needed, before browsing
+        if powerCheck == False:
+            body = bodyStart + '<Power_Control><Power>On</Power></Power_Control>' + bodyEnd
+            rr = requests.post(rUrl, headers=headers, data=body)
+    else:
+        logger.log("Source %s is not browsable" % (source))
+        browseResult.addItem(nymea.BrowserItem("Empty", "Source not browsable", "Non-selectable item", executable=False, disabled=True, icon=nymea.BrowserIconFavorites))
+        browseResult.finish(nymea.ThingErrorNoError)
+        return
 
     if browseResult.itemId == "":
         # go to first menu layer
