@@ -206,11 +206,10 @@ def setupThing(info):
         # If no poll timer is set up yet, start it now
         logger.log("Creating pollService")
         global pollTimer
-        global pollFrequency
         if pollTimer == None:
             logger.log("Starting timer @ setupThing")
-            pollTimer = nymea.PluginTimer(pollFrequency, pollService)
-            logger.log("timer interval @ setupThing", pollTimer.interval)
+            pollTimer = threading.Timer(30, pollService)
+            pollTimer.start()
         else:
             logger.log("Timer already exists @ setupThing")
         
@@ -567,13 +566,13 @@ def pollReceiver(info):
                 zone.setStateValue(zoneConnectedStateTypeId, False)
 
 def pollService():
-    logger.log("pollTimer triggered!!!")
+    logger.log("pollService!!!")
     global pollTimer
     global pollFrequency
     # restart the timer for next poll
-    # logger.log("Restarting timer @ pollService, with frequency", pollFrequency)
-    # pollTimer = nymea.PluginTimer(pollFrequency, pollService)
-    logger.log("timer interval @ pollService", pollTimer.interval)
+    logger.log("Restarting timer @ pollService, with frequency", pollFrequency)
+    pollTimer = threading.Timer(pollFrequency, pollService)
+    pollTimer.start()
     pollFrequency = 30
     # Poll all receivers we know
     for thing in myThings():
@@ -1320,11 +1319,10 @@ def deinit():
     global pollTimer
     # If we started a poll timer, cancel it on shutdown.
     if pollTimer is not None:
-        pollTimer = None
+        pollTimer.cancel()
 
 def thingRemoved(thing):
-    global pollTimer
     logger.log("removeThing called for", thing.name)
     # Clean up all data related to this thing
-    if len(myThings()) == 0 and pollTimer is not None:
-        pollTimer = None
+    if pollTimer is not None:
+        pollTimer.cancel()
