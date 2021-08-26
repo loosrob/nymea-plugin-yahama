@@ -567,7 +567,7 @@ def pollReceiver(info):
                 zone.setStateValue(zoneConnectedStateTypeId, False)
 
 def pollService():
-    logger.log("pollTimer triggered!!!")
+    logger.log("pollTimer triggered")
     global pollTimer
     global pollFrequency
     # restart the timer for next poll
@@ -945,10 +945,21 @@ def playRandomAlbum(rUrl, source):
         logger.log("Source not supported for this action")
     # navigate browseTree (first item select random server, then folder "Music", ...)
     menuLayer = browseInTree(rUrl, source, browseTree)
-    # play album by selecting first line --> what if first line is not selectable? filter out non-selectable lines first?
-    if menuLayer == len(browseTree)+1 and menuLayer > 0:
-        # don't do anything unless browsing to the required menu item succeeded
-        selectLine(rUrl, source, 1)
+
+    # don't do anything unless browsing to the required menu item succeeded:
+    if menuLayer == len(browseTree)+1 and menuLayer > 0: 
+        # play album by selecting first "selectable" line (attribute = "Item")
+        browseResponse, menuLayer = browseMenuReady(rUrl, source)
+        selectable = False
+        line = 1
+        while selectable == False:
+            itemTxt, itemAttr = readLine(browseResponse, line)
+            if itemAttr == "Item":
+                selectable = True
+            else:
+                line += 1
+        logger.log("Selecting line %s with label %s" % (line, itemTxt))
+        selectLine(rUrl, source, line)
     return
 
 def browseInTree(rUrl, source, browseTree):
@@ -966,7 +977,6 @@ def browseInTree(rUrl, source, browseTree):
     # navigate browseTree
     for i in range (0, len(browseTree)):
         if browseTree[i] == "Random":
-            #browseResponse, menuLayer = browseMenuReady(rUrl, source)
             currentLine, maxLine = getLineNbrs(browseResponse)
             selItem = random.randint(1, maxLine)
             selectLine(rUrl, source, selItem)
