@@ -570,9 +570,8 @@ def pollService():
     logger.log("pollTimer triggered")
     global pollTimer
     global pollFrequency
-    # restart the timer for next poll
-    # logger.log("Restarting timer @ pollService, with frequency", pollFrequency)
-    # pollTimer = nymea.PluginTimer(pollFrequency, pollService)
+    logger.log("adjusting timer interval")
+    pollTimer.interval = pollFrequency
     logger.log("timer interval @ pollService", pollTimer.interval)
     pollFrequency = 30
     # Poll all receivers we know
